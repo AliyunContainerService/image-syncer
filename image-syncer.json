@@ -1,0 +1,21 @@
+{
+    "auth": {
+        "quay.io": {                       
+            "username": "xxx",              
+            "password": "xxxxxxxxx"         
+        },
+        "registry.cn-beijing.aliyuncs.com": {
+            "username": "xxx",
+            "password": "xxxxxxxxx"
+        },
+        "registry.hub.docker.com": {
+            "username": "xxx",
+            "password": "xxxxxxxxxx"
+        }
+    },
+    "images": {       
+        "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
+        "xxxx":"xxxxx",
+        "xxx/xxx/xx:tag1,tag2,tag3":"xxx/xxx/xx"
+   }													 
+}

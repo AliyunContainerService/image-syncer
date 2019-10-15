@@ -1,0 +1,6 @@
+image-syncer
+records
+.vscode
+*.log
+*.conf
+*.json
