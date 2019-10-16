@@ -211,12 +211,12 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*UrlPair
 	var imageDestination *sync.ImageDestination = nil
 
 	if auth, exist := c.config.GetAuth(sourceUrl.GetRegistry()); exist {
-		imageSource, err = sync.NewImageSource(sourceUrl.GetRegistry(), sourceUrl.GetRepoWithNamespace(), sourceUrl.GetTag(), auth.Username, auth.Password)
+		imageSource, err = sync.NewImageSource(sourceUrl.GetRegistry(), sourceUrl.GetRepoWithNamespace(), sourceUrl.GetTag(), auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceUrl.GetUrl(), err)
 		}
 	} else {
-		imageSource, err = sync.NewImageSource(sourceUrl.GetRegistry(), sourceUrl.GetRepoWithNamespace(), sourceUrl.GetTag(), "", "")
+		imageSource, err = sync.NewImageSource(sourceUrl.GetRegistry(), sourceUrl.GetRepoWithNamespace(), sourceUrl.GetTag(), "", "", false)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceUrl.GetUrl(), err)
 		}
@@ -253,12 +253,12 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*UrlPair
 	}
 
 	if auth, exist := c.config.GetAuth(destUrl.GetRegistry()); exist {
-		imageDestination, err = sync.NewImageDestination(destUrl.GetRegistry(), destUrl.GetRepoWithNamespace(), destTag, auth.Username, auth.Password)
+		imageDestination, err = sync.NewImageDestination(destUrl.GetRegistry(), destUrl.GetRepoWithNamespace(), destTag, auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image destination error: %v", sourceUrl.GetUrl(), err)
 		}
 	} else {
-		imageDestination, err = sync.NewImageDestination(destUrl.GetRegistry(), destUrl.GetRepoWithNamespace(), destTag, "", "")
+		imageDestination, err = sync.NewImageDestination(destUrl.GetRegistry(), destUrl.GetRepoWithNamespace(), destTag, "", "", false)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image destination error: %v", destUrl.GetUrl(), err)
 		}

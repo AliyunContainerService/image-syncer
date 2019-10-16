@@ -24,6 +24,7 @@ type Config struct {
 type Auth struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Insecure bool   `json:"insecure"`
 }
 
 func NewSyncConfig(configFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
