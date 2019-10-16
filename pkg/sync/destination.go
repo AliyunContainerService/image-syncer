@@ -25,7 +25,7 @@ type ImageDestination struct {
 
 // Generate a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
-func NewImageDestination(registry, repository, tag, username, password string) (*ImageDestination, error) {
+func NewImageDestination(registry, repository, tag, username, password string, insecure bool) (*ImageDestination, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
@@ -42,7 +42,16 @@ func NewImageDestination(registry, repository, tag, username, password string) (
 		return nil, err
 	}
 
-	sysctx := &types.SystemContext{}
+	var sysctx *types.SystemContext
+	if insecure {
+		// destinatoin registry is http service
+		sysctx = &types.SystemContext{
+			DockerInsecureSkipTLSVerify: types.OptionalBoolTrue,
+		}
+	} else {
+		sysctx = &types.SystemContext{}
+	}
+
 	ctx := context.WithValue(context.Background(), "ImageDestination", repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{

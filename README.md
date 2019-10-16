@@ -51,7 +51,8 @@ make
         
         "quay.io": {        // This URL of registry should be the same as registry used below in "images fields".
             "username": "xxx",             
-            "password": "xxxxxxxxx"         
+            "password": "xxxxxxxxx",
+            "insecure": true         // "insecure" field needs to be true if this registry is a http service, default value is false
         },
         "registry.cn-beijing.aliyuncs.com": {
             "username": "xxx",

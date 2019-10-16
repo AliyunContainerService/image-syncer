@@ -2,7 +2,8 @@
     "auth": {
         "quay.io": {                       
             "username": "xxx",              
-            "password": "xxxxxxxxx"         
+            "password": "xxxxxxxxx",
+            "insecure": true  
         },
         "registry.cn-beijing.aliyuncs.com": {
             "username": "xxx",
