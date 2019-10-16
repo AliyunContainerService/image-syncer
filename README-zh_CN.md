@@ -95,7 +95,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
 `image-syncer` 的使用比较简单，但同时也支持多个启动参数的指定：
 
-```bash
+```
 -h  --help       使用说明，会打印出一些启动参数的当前默认值
 
     --config     设置用户提供的配置文件所在路径，使用之前需要创建配置文件，默认为当前工作目录下的image-syncer.json文件
@@ -114,3 +114,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
     --retires    失败同步任务的重试次数，默认为2，重试会在所有任务都被执行一遍之后开始，并且也会重新尝试对应次数生成失败任务的生成。一些偶尔出现的
                  网络错误比如io timeout、TLS handshake timeout，都可以通过设置重试次数来减少失败的任务数量
 ```
+
+### FAQs
+
+同步中常见的问题汇总在[FAQs文档](./FAQs.md)中

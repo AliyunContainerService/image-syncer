@@ -87,7 +87,7 @@ You can download latest binary release [here](https://github.com/AliyunContainer
 
 ### Parameters
 
-```bash
+```
 -h  --help       usage information
 
     --config     set the path of configure file, this file need to be created before starting synchronization, default
@@ -115,3 +115,6 @@ You can download latest binary release [here](https://github.com/AliyunContainer
 ```
 
 
+### FAQs
+
+Frequently asked questions are listed in [FAQs](./FAQs.md)
