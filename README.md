@@ -21,6 +21,14 @@ English | [简体中文](./README-zh_CN.md)
 
 You can download latest binary release [here](https://github.com/AliyunContainerService/image-syncer/releases)
 
+### Compile Manually
+```
+go get github.com/AliyunContainerService/image-syncer
+cd $GOPATH/github.com/AliyunContainerService/image-syncer
+
+# This will create a binary file named image-syncer
+make
+```
 
 ### Example
 

@@ -21,6 +21,16 @@
 
 在[release](https://github.com/AliyunContainerService/image-syncer/releases)页面可下载源码以及二进制文件
 
+### 手动编译
+```
+go get github.com/AliyunContainerService/image-syncer
+cd $GOPATH/github.com/AliyunContainerService/image-syncer
+
+# This will create a binary file named image-syncer
+make
+```
+
+
 ### 使用用例
 
 ```shell
