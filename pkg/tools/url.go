@@ -17,30 +17,28 @@ type RepoUrl struct {
 }
 
 func NewRepoUrl(url string) (*RepoUrl, error) {
-	// get tag in the url
-	var tag string
-	var urlExceptTag string = url
+	// split to registry/namespace/repoAndTag
+	slice := strings.SplitN(url, "/", 3)
 
-	s := strings.Split(url, ":")
-	if len(s) > 3 {
+	var tag, repo string
+	repoAndTag := slice[len(slice)-1]
+	s := strings.Split(repoAndTag, ":")
+	if len(s) > 2 {
 		return nil, fmt.Errorf("invalid repository url: %v", url)
 	} else if len(s) == 2 {
+		repo = s[0]
 		tag = s[1]
-		urlExceptTag = s[0]
-	} else if len(s) == 3 {
-		// "ip:port" format of registry url
-		tag = s[2]
-		urlExceptTag = s[0] + ":" + s[1]
+	} else {
+		repo = s[0]
+		tag = ""
 	}
 
-	// split to registry/namespace/repo
-	slice := strings.SplitN(urlExceptTag, "/", 3)
 	if len(slice) == 3 {
 		return &RepoUrl{
 			url:       url,
 			registry:  slice[0],
 			namespace: slice[1],
-			repo:      slice[2],
+			repo:      repo,
 			tag:       tag,
 		}, nil
 	} else if len(slice) == 2 {
@@ -48,7 +46,7 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 			url:       url,
 			registry:  "registry.hub.docker.com",
 			namespace: slice[0],
-			repo:      slice[1],
+			repo:      repo,
 			tag:       tag,
 		}, nil
 	} else {
@@ -56,7 +54,7 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 			url:       url,
 			registry:  "registry.hub.docker.com",
 			namespace: "library",
-			repo:      slice[0],
+			repo:      repo,
 			tag:       tag,
 		}, nil
 	}

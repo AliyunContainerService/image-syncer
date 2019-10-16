@@ -12,6 +12,7 @@ func TestUrl(t *testing.T) {
 		"registry.hub.docker.io/library/nginx",
 		"nginx:v1",
 		"127.0.0.1:300/library/nginx:v1",
+		"127.0.0.1:300/library/nginx",
 	}
 
 	var repoUrls []*RepoUrl
@@ -37,4 +38,7 @@ func TestUrl(t *testing.T) {
 	assert.Equal(t, "127.0.0.1:300/library/nginx", repoUrls[3].GetUrlWithoutTag())
 	assert.Equal(t, "v1", repoUrls[3].GetTag())
 	assert.Equal(t, "nginx:v1", repoUrls[3].GetRepoWithTag())
+	assert.Equal(t, "127.0.0.1:300/library/nginx", repoUrls[4].GetUrlWithoutTag())
+	assert.Equal(t, "127.0.0.1:300", repoUrls[4].GetRegistry())
+	assert.Equal(t, "nginx", repoUrls[4].GetRepoWithTag())
 }
