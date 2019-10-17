@@ -8,12 +8,14 @@ English | [简体中文](./README-zh_CN.md)
 
 ## Features
 
-- Support docker registry services based on Docker Registry V2 (e.g., AliContainerRegistry, dockerhub, quay, harbor)
+- Support for many-to-many registry synchronization
+- Supports docker registry services based on Docker Registry V2 (e.g., AliContainerRegistry, dockerhub, quay, harbor)
 - Network & Memory Only, don't rely on large disk storage, fast synchronization
 - Incremental Synchronization, use a disk file to record the synchronized image blobs' information
 - Concurrent Synchronization, adjustable goroutine numbers
 - Automatic Retries of Failed Sync Tasks, to resolve the network problems while synchronizing
-- Don't rely on Docker Deamon or other programs
+- Doesn't rely on Docker Deamon or other programs
+
 
 ## Usage
 
@@ -65,15 +67,26 @@ make
     },
     "images": {
         // Rules of image synchronization, each rule is a kv pair of source(key) and destination(value). 
+
         // The source of each rule should not be empty string.
+
         // If you need to synchronize images from one source to multi destinations, add more rules.
 
-        // Both source and destination are docker repository url almostly (repository/namespace:tag), 
+        // Both source and destination are docker image url almostly (registry/namespace/repository:tag), 
         // with or without tags.
+
+        // For both source and destination, if destination is not an empty string, "registry/namespace/repository" 
+        // is needed at least.
+        
+        // You cannot synchronize a whole namespace or a registry but a repository for one rule at most.
+
+        // The repository name and tag of destination can be deferent from source, which works like 
+        // "docker pull + docker tag + docker push"
 
         "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
         "xxxx":"xxxxx",
         "xxx/xxx/xx:tag1,tag2,tag3":"xxx/xxx/xx"
+
         // If a source doesn't include tags, it means all the tags of this repository need to be synchronized,
         // destination should not include tags at this moment.
         
@@ -83,7 +96,7 @@ make
         // at this moment, if the destination doesn't include a tag, synchronized image will keep the same tag.
         
         // When a source includes more than one tag (e.g., "a/b/c:1,2,3"), at this moment,
-        // the destination should not include tags, synchronized images will keep the same tag tags.
+        // the destination should not include tags, synchronized images will keep the original tags.
         // e.g., "a/b/c:1,2,3":"x/y/z".
         
         // When a destination is an empty string, source will be synchronized to "default-registry/default-namespace"

@@ -8,12 +8,14 @@
 
 ## Features
 
+- 支持多对多镜像仓库同步
 - 支持基于Docker Registry V2搭建的docker镜像仓库服务 (如 dockerhub、quay、 ACR、 harbor)
 - 同步只经过内存和网络，不依赖磁盘存储，同步速度快
 - 增量同步, 通过对同步过的镜像blob信息落盘，不重复同步已同步的镜像
 - 并发同步，可以通过配置文件调整并发数
 - 自动重试失败的同步任务，可以解决大部分镜像同步中的网络抖动问题
 - 不依赖docker以及其他程序
+
 
 ## 使用
 
@@ -80,22 +82,24 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
         }
     },
     "images": {
-        // 同步镜像规则字段，其中每个键值对表示一个源仓库和目标仓库对
-        // 源仓库字段不能为空，如果需要将一个源同步到多个目标仓库需要配置多条规则
+        // 同步镜像规则字段，其中条规则包括一个源仓库（键）和一个目标仓库（值）
+        
+        // 同步的最大单位是仓库（repo），不支持通过一条规则同步整个namespace以及registry
+        
+        // 源仓库和目标仓库的格式与docker pull/push命令使用的镜像url类似（registry/namespace/repository:tag）
+        // 源仓库和目标仓库（如果目标仓库不为空字符串）都至少包含registry/namespace/repository
+        // 源仓库字段不能为空，如果需要将一个源仓库同步到多个目标仓库需要配置多条规则
+        // 目标仓库名可以和源仓库名不同（tag也可以不同），此时同步功能类似于：docker pull + docker tag + docker push
 
         "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
         "xxxx":"xxxxx",
         "xxx/xxx/xx:tag1,tag2,tag3":"xxx/xxx/xx"
-        // 当源仓库字段中不包含tag时，表示将该仓库所有tag同步到目标仓库，此时目标仓库不能包含tag.
+
+        // 当源仓库字段中不包含tag时，表示将该仓库所有tag同步到目标仓库，此时目标仓库不能包含tag
+        // 当源仓库字段中包含tag时，表示只同步源仓库中的一个tag到目标仓库，如果目标仓库中不包含tag，则默认使用源tag
+        // 源仓库字段中的tag可以同时包含多个（比如"a/b/c:1,2,3"），tag之间通过","隔开，此时目标仓库不能包含tag，并且默认使用原来的tag
         
-        // 当源仓库字段中包含tag时，表示只同步源仓库中的一个tag到目标仓库，如果目标仓库中不包含
-        // tag，则默认使用源tag.
-        
-        // 源仓库字段中的tag可以同时包含多个（比如"a/b/c:1,2,3"），tag之间通过","隔开，此时目
-        // 标仓库不能包含tag.
-        
-        // 当目标仓库为空字符串时，会将镜像同步到默认registry的默认namespace下，并且repo以及
-        // tag与源仓库相同
+        // 当目标仓库为空字符串时，会将源镜像同步到默认registry的默认namespace下，并且repo以及tag与源仓库相同，默认registry和默认namespace可以通过命令行参数以及环境变量配置，参考下面的描述
     }	 
 }	
      
@@ -103,7 +107,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
 ### 更多参数
 
-`image-syncer` 的使用比较简单，但同时也支持多个启动参数的指定：
+`image-syncer` 的使用比较简单，但同时也支持多个命令行参数的指定：
 
 ```
 -h  --help       使用说明，会打印出一些启动参数的当前默认值
