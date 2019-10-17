@@ -2,9 +2,9 @@
 
 ## How can I get the results of synchronization?（如何获得同步的执行结果？）
 
-After synchronization, `image-syncer` will count the failed and success synchronization tasks(images), outputs like "Finished, <NUMBER OF FAILED TASK> sync tasks failed, <NUMBER OF FAILED SUCCESS> tasks generate failed" will be print to both Stdout and logs file.
+After synchronization, `image-syncer` will count the failed and success synchronization tasks(images), outputs like "Finished, \<NUMBER OF FAILED TASKS\> sync tasks failed, \<NUMBER OF GENERATED FAILED TASKS\> tasks generate failed" will be print to both Stdout and logs file.
 
-在同步结束之后，`image-syncer` 会统计成功和失败的同步任务数目（每个同步任务代表一个镜像），并在标准输出和日志中打印 "Finished, <NUMBER OF FAILED TASK> sync tasks failed, <NUMBER OF FAILED SUCCESS> tasks generate failed" 的字样，从而可以获得同步的结果
+在同步结束之后，`image-syncer` 会统计成功和失败的同步任务数目（每个同步任务代表一个镜像），并在标准输出和日志中打印 "Finished, \<NUMBER OF FAILED TASKS\> sync tasks failed, \<NUMBER OF GENERATED FAILED TASKS\> tasks generate failed" 的字样，从而可以获得同步的结果
 
 ## How can I deal with the failed sync tasks?（同步失败的任务如何处理？）
 
