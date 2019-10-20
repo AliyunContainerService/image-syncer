@@ -1,0 +1,80 @@
+  # Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+    - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/AliyunContainerService/image-syncer
+    steps:
+    - checkout
+    - setup_remote_docker:
+          docker_layer_caching: true
+    - run:
+        name: run tests
+        command: |
+          test -z $(go fmt ./...)
+          go vet ./...
+          go test -race -v ./...
+    - run:
+        name: codecov
+        command: |
+          go test -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic ./...
+          bash <(curl -s https://codecov.io/bash)
+  code-check:
+    docker:
+      - image: sunyuan3/gometalinter:v1
+    working_directory: /go/src/github.com/AliyunContainerService/image-syncer
+    steps:
+      - checkout
+      - run:
+          name: validate go code with gometalinter
+          command: |
+            gometalinter --disable-all --skip vendor -E goconst -E gofmt -E ineffassign -E goimports -E golint -E misspell -E vet -d ./...
+      - run:
+          name: use opensource tool client9/misspell to correct commonly misspelled English words 
+          command: |
+            find  ./* -name  "*"  | grep -v vendor | xargs misspell -error
+      - run:
+          name: use ShellCheck (https://github.com/koalaman/shellcheck) to check the validateness of shell scripts
+          command: |
+            find ./ -name "*.sh" | grep -v vendor | xargs shellcheck
+      - run:
+          name: detect deadcode without tests folder
+          command: |
+            gometalinter --disable-all --skip vendor --skip tests -E deadcode -d ./...
+      - run:
+          name: use markdownlint v0.5.0 to lint markdown file (https://github.com/markdownlint/markdownlint)
+          command: |
+            find  ./ -name  "*.md" | grep -v vendor | grep -v commandline |  grep -v .github |  grep -v swagger |  grep -v api |  xargs mdl -r ~MD010,~MD013,~MD024,~MD029,~MD033,~MD036
+      - run:
+          name: use markdown-link-check(https://github.com/tcort/markdown-link-check) to check links in markdown files
+          command: |
+            set +e
+            for name in $(find . -name \*.md | grep -v vendor); do 
+              if [ -f $name ]; then 
+                markdown-link-check -q $name; 
+                if [ $? -ne 0 ]; then
+                  code=1
+                fi
+              fi 
+            done 
+            bash -c "exit $code";
+  markdown-spellcheck:
+    docker:
+        - image: sunyuan3/markdown-spellcheck:v1
+    working_directory: /go/src/github.com/AliyunContainerService/image-syncer
+    steps:
+      - checkout
+      - run:
+          name: markdown spellcheck
+          command: |
+            find . -name \*.md | grep -v '^./vendor' | grep  -v ./README-zh_C | xargs mdspell --ignore-numbers --ignore-acronyms --en-us -r -x
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - build
+      - code-check
+      - markdown-spellcheck
