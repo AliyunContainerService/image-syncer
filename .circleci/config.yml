@@ -68,7 +68,7 @@ jobs:
       - run:
           name: markdown spellcheck
           command: |
-            find . -name \*.md | grep -v '^./vendor' | grep  -v ./README-zh_C | xargs mdspell --ignore-numbers --ignore-acronyms --ignored Stdout,DIGEST_INVALID,e.g.,image-syncer,goroutine,Quay.io --en-us -r -x
+            find . -name \*.md | grep -v '^./vendor' | grep  -v ./README-zh_C | xargs mdspell --ignore-numbers --ignore-acronyms --en-us -r -x
 workflows:
   version: 2
   ci:
