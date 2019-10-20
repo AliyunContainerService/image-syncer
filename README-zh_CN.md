@@ -11,7 +11,7 @@
 ## Features
 
 - 支持多对多镜像仓库同步
-- 支持基于Docker Registry V2搭建的docker镜像仓库服务 (如 Docker Hub、Quay、 阿里云镜像服务ACR、 Harbord等)
+- 支持基于Docker Registry V2搭建的docker镜像仓库服务 (如 Docker Hub、 Quay、 阿里云镜像服务ACR、 Harbor等)
 - 同步只经过内存和网络，不依赖磁盘存储，同步速度快
 - 增量同步, 通过对同步过的镜像blob信息落盘，不重复同步已同步的镜像
 - 并发同步，可以通过配置文件调整并发数
