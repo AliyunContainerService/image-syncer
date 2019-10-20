@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// The configure infomation of sync client
+// Config information of sync client
 type Config struct {
 	// the authentication information of each registry
 	AuthList map[string]Auth `json:"auth"`

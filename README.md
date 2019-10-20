@@ -9,12 +9,12 @@ English | [简体中文](./README-zh_CN.md)
 ## Features
 
 - Support for many-to-many registry synchronization
-- Supports docker registry services based on Docker Registry V2 (e.g., AliContainerRegistry, dockerhub, quay, harbor)
+- Supports docker registry services based on Docker Registry V2 (e.g., Alibaba Cloud Container Registry Service, Docker Hub, Quay.io, Harbor, etc.)
 - Network & Memory Only, don't rely on large disk storage, fast synchronization
 - Incremental Synchronization, use a disk file to record the synchronized image blobs' information
 - Concurrent Synchronization, adjustable goroutine numbers
 - Automatic Retries of Failed Sync Tasks, to resolve the network problems while synchronizing
-- Doesn't rely on Docker Deamon or other programs
+- Doesn't rely on Docker daemon or other programs
 
 
 ## Usage
@@ -35,7 +35,7 @@ make
 ### Example
 
 ```shell
-# Get usage infomation
+# Get usage information
 ./image-syncer -h
 
 # With this command, configure file path is "./config.json", default target registry is "registry.cn-beijing.aliyuncs.com",
@@ -72,7 +72,7 @@ make
 
         // If you need to synchronize images from one source to multi destinations, add more rules.
 
-        // Both source and destination are docker image url almostly (registry/namespace/repository:tag), 
+        // Both source and destination are docker image url (registry/namespace/repository:tag), 
         // with or without tags.
 
         // For both source and destination, if destination is not an empty string, "registry/namespace/repository" 
