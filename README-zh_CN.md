@@ -9,7 +9,7 @@
 ## Features
 
 - 支持多对多镜像仓库同步
-- 支持基于Docker Registry V2搭建的docker镜像仓库服务 (如 dockerhub、quay、 ACR、 harbor)
+- 支持基于Docker Registry V2搭建的docker镜像仓库服务 (如 Docker Hub、Quay、 阿里云镜像服务ACR、 Harbord等)
 - 同步只经过内存和网络，不依赖磁盘存储，同步速度快
 - 增量同步, 通过对同步过的镜像blob信息落盘，不重复同步已同步的镜像
 - 并发同步，可以通过配置文件调整并发数
@@ -21,7 +21,7 @@
 
 ### 下载和安装
 
-在[release](https://github.com/AliyunContainerService/image-syncer/releases)页面可下载源码以及二进制文件
+在[releases](https://github.com/AliyunContainerService/image-syncer/releases)页面可下载源码以及二进制文件
 
 ### 手动编译
 ```
@@ -122,7 +122,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
     --proc       并发数，进行镜像同步的并发goroutine数量，默认为5
 
-    --records    指定传输过程中保存已传输完成镜像信息（blob）的文件输出/读取路径，默认输出到当前工作目录，一个records记录了对应目标仓库的已迁移信              息，可以用来进行连续的多次迁移（会节约大量时间，但不要把之前自己没执行过的records文件拿来用），如果有unknow blob之类的错误，可以
+    --records    指定传输过程中保存已传输完成镜像信息（blob）的文件输出/读取路径，默认输出到当前工作目录，一个records记录了对应目标仓库的已迁移信              息，可以用来进行连续的多次迁移（会节约大量时间，但不要把之前自己没执行过的records文件拿来用），如果有unknown blob之类的错误，可以
                  删除该文件重新尝试
 
     --retries    失败同步任务的重试次数，默认为2，重试会在所有任务都被执行一遍之后开始，并且也会重新尝试对应次数生成失败任务的生成。一些偶尔出现的
