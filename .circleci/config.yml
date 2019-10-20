@@ -39,10 +39,6 @@ jobs:
           command: |
             find  ./* -name  "*"  | grep -v vendor | xargs misspell -error
       - run:
-          name: use ShellCheck (https://github.com/koalaman/shellcheck) to check the validateness of shell scripts
-          command: |
-            find ./ -name "*.sh" | grep -v vendor | xargs shellcheck
-      - run:
           name: detect deadcode without tests folder
           command: |
             gometalinter --disable-all --skip vendor --skip tests -E deadcode -d ./...
