@@ -18,7 +18,6 @@
 - 自动重试失败的同步任务，可以解决大部分镜像同步中的网络抖动问题
 - 不依赖docker以及其他程序
 
-
 ## 使用
 
 ### 下载和安装
@@ -26,6 +25,7 @@
 在[releases](https://github.com/AliyunContainerService/image-syncer/releases)页面可下载源码以及二进制文件
 
 ### 手动编译
+
 ```
 go get github.com/AliyunContainerService/image-syncer
 cd $GOPATH/github.com/AliyunContainerService/image-syncer
@@ -33,7 +33,6 @@ cd $GOPATH/github.com/AliyunContainerService/image-syncer
 # This will create a binary file named image-syncer
 make
 ```
-
 
 ### 使用用例
 
@@ -58,8 +57,6 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
 1. [创建容器镜像服务]()
 2.  -->
-
-
 
 ### 配置文件
 
