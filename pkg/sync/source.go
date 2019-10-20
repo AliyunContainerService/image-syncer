@@ -79,7 +79,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}, nil
 }
 
-// Get manifest file from source image
+// GetManifest get manifest file from source image
 func (i *ImageSource) GetManifest() ([]byte, string, error) {
 	if i.source == nil {
 		return nil, "", fmt.Errorf("cannot get manifest file without specfied a tag")
@@ -87,7 +87,7 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 	return i.source.GetManifest(i.ctx, nil)
 }
 
-// Get blobs from source image.
+// GetBlobInfos get blobs from source image.
 func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]types.BlobInfo, error) {
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specfied a tag")
@@ -100,9 +100,10 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 
 	if digests != nil {
 		// TODO: manifest list support
-		return nil, fmt.Errorf("Manifest list is not supported right now!")
+		return nil, fmt.Errorf("manifest list is not supported right now")
 	}
-	// Recieved a manifest
+
+	// get a manifest
 
 	blobInfos := manifestInfo.LayerInfos()
 	srcBlobs := []types.BlobInfo{}

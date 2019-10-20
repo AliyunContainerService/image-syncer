@@ -53,7 +53,7 @@ func NewSyncBlobRecorder(onDisk string) error {
 	return nil
 }
 
-// Record infomation of a layer that has been synchronized
+// Record information of a layer that has been synchronized
 func (slr *SyncBlobRecorder) Record(registry, digest string, size int64) error {
 	slr.LockRecorder()
 	if slr.Blobs[registry] == nil {
