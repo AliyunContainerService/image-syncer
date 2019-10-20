@@ -9,8 +9,6 @@ jobs:
     working_directory: /go/src/github.com/AliyunContainerService/image-syncer
     steps:
     - checkout
-    - setup_remote_docker:
-          docker_layer_caching: true
     - run:
         name: run tests
         command: |
@@ -22,6 +20,10 @@ jobs:
         command: |
           go test -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic ./...
           bash <(curl -s https://codecov.io/bash)
+    - run:
+        name: compile
+        command: |
+          make -B
   code-check:
     docker:
       - image: sunyuan3/gometalinter:v1
@@ -70,7 +72,7 @@ jobs:
       - run:
           name: markdown spellcheck
           command: |
-            find . -name \*.md | grep -v '^./vendor' | grep  -v ./README-zh_C | xargs mdspell --ignore-numbers --ignore-acronyms --en-us -r -x
+            find . -name \*.md | grep -v '^./vendor' | grep  -v ./README-zh_C | xargs mdspell --ignore-numbers --ignore-acronyms --ignored Stdout,DIGEST_INVALID,e.g.,image-syncer,goroutine,Quay.io --en-us -r -x
 workflows:
   version: 2
   ci:

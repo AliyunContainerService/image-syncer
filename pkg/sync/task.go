@@ -8,34 +8,37 @@ import (
 )
 
 var (
-	// a map record the synchronized layer for the same registry
+	// SynchronizedBlobs is a map record the synchronized layer for the same registry
 	// the map is going to look something like: <registry>:<digest>:<size>
-	SynchronizedBlobs *SyncBlobRecorder
+	SynchronizedBlobs *SynchronizedBlobRecorder
 
+	// NoCache used to disable a blobinfocache
 	NoCache = none.NoCache
 )
 
-// SyncTask act as a sync action, it will pull a images from source to destination
-type SyncTask struct {
+// Task act as a sync action, it will pull a images from source to destination
+type Task struct {
 	source      *ImageSource
 	destination *ImageDestination
 
 	logger *logrus.Logger
 }
 
-func NewSyncTask(source *ImageSource, destination *ImageDestination, logger *logrus.Logger) *SyncTask {
+// NewTask creates a sync task
+func NewTask(source *ImageSource, destination *ImageDestination, logger *logrus.Logger) *Task {
 	if logger == nil {
 		logger = logrus.New()
 	}
 
-	return &SyncTask{
+	return &Task{
 		source:      source,
 		destination: destination,
 		logger:      logger,
 	}
 }
 
-func (t *SyncTask) Run() error {
+// Run is the main function of a sync task
+func (t *Task) Run() error {
 	// get manifest from source
 	manifestByte, manifestType, err := t.source.GetManifest()
 	if err != nil {
@@ -84,11 +87,13 @@ func (t *SyncTask) Run() error {
 	return nil
 }
 
-func (t *SyncTask) Errorf(format string, args ...interface{}) error {
+// Errorf logs error to logger
+func (t *Task) Errorf(format string, args ...interface{}) error {
 	t.logger.Errorf(format, args...)
 	return fmt.Errorf(format, args...)
 }
 
-func (t *SyncTask) Infof(format string, args ...interface{}) {
+// Infof logs info to logger
+func (t *Task) Infof(format string, args ...interface{}) {
 	t.logger.Infof(format, args...)
 }

@@ -21,12 +21,14 @@ type Config struct {
 	defaultDestNamespace string
 }
 
+// Auth describes the authentication information of a registry
 type Auth struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Insecure bool   `json:"insecure"`
 }
 
+// NewSyncConfig creates a Config struct
 func NewSyncConfig(configFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config file %v not exist: %v", configFilePath, err)
@@ -49,11 +51,13 @@ func NewSyncConfig(configFilePath, defaultDestRegistry, defaultDestNamespace str
 	return &config, nil
 }
 
+// GetAuth gets the authentication information in Config
 func (c *Config) GetAuth(registry string) (Auth, bool) {
 	auth, exist := c.AuthList[registry]
 	return auth, exist
 }
 
+// GetImageList gets the ImageList map in Config
 func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
 }
