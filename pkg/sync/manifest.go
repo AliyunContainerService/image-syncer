@@ -9,15 +9,17 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
+// ManifestSchemaV2List describes a schema V2 manifest list
 type ManifestSchemaV2List struct {
 	Manifests []ManifestSchemaV2Info `json:"manifests"`
 }
 
+// ManifestSchemaV2Info includes of the imformation needes of a schema V2 manifest file
 type ManifestSchemaV2Info struct {
 	Digest string `json:"digest"`
 }
 
-// Expend the ability of handling manifest list in schema2, but it's not finished yet
+// ManifestHandler expends the ability of handling manifest list in schema2, but it's not finished yet
 // return the digest array of manifests in the manifest list if exist.
 func ManifestHandler(m []byte, t string) (manifest.Manifest, []*digest.Digest, error) {
 	if t == manifest.DockerV2Schema2MediaType {
@@ -41,11 +43,11 @@ func ManifestHandler(m []byte, t string) (manifest.Manifest, []*digest.Digest, e
 
 		manifestDigests := []*digest.Digest{}
 		for _, item := range ml.Manifests {
-			if d, err := digest.Parse(item.Digest); err != nil {
+			d, err := digest.Parse(item.Digest)
+			if err != nil {
 				return nil, nil, err
-			} else {
-				manifestDigests = append(manifestDigests, &d)
 			}
+			manifestDigests = append(manifestDigests, &d)
 		}
 		return nil, manifestDigests, nil
 	}

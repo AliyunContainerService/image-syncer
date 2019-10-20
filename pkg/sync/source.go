@@ -10,7 +10,7 @@ import (
 	"github.com/containers/image/types"
 )
 
-// A ImageSource reference to a remote image need to be pulled.
+// ImageSource is a reference to a remote image need to be pulled.
 type ImageSource struct {
 	sourceRef types.ImageReference
 	source    types.ImageSource
@@ -23,7 +23,7 @@ type ImageSource struct {
 	tag        string
 }
 
-// Generate a PullTask by repository, the repository string must include "tag",
+// NewImageSource generates a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
 func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
@@ -52,7 +52,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), "ImageSource", repository)
+	ctx := context.WithValue(context.Background(), interface{}("ImageSource"), repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
@@ -60,7 +60,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		}
 	}
 
-	var rawSource types.ImageSource = nil
+	var rawSource types.ImageSource
 	if tag != "" {
 		// if tag is empty, will attach to the "latest" tag, and will get a error if "latest" is not exist
 		rawSource, err = srcRef.NewImageSource(ctx, sysctx)
@@ -121,26 +121,32 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 	return srcBlobs, nil
 }
 
+// GetABlob gets a blob from remote image
 func (i *ImageSource) GetABlob(blobInfo types.BlobInfo) (io.ReadCloser, int64, error) {
 	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, Size: -1}, NoCache)
 }
 
+// Close an ImageSource
 func (i *ImageSource) Close() error {
 	return i.source.Close()
 }
 
+// GetRegistry returns the registry of a ImageSource
 func (i *ImageSource) GetRegistry() string {
 	return i.registry
 }
 
+// GetRepository returns the repository of a ImageSource
 func (i *ImageSource) GetRepository() string {
 	return i.repository
 }
 
+// GetTag returns the tag of a ImageSource
 func (i *ImageSource) GetTag() string {
 	return i.tag
 }
 
+// GetSourceRepoTags gets all the tags of a repository which ImageSource belongs to
 func (i *ImageSource) GetSourceRepoTags() ([]string, error) {
 	return docker.GetRepositoryTags(i.ctx, i.sysctx, i.sourceRef)
 }

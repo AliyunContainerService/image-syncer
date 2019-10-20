@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// create a log file and init logger
+// NewFileLogger creates a log file and init logger
 func NewFileLogger(path string) *logrus.Logger {
 	logger := logrus.New()
 

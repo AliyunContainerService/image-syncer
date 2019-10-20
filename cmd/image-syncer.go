@@ -14,6 +14,7 @@ var (
 	procNum, retries int
 )
 
+// RootCmd describes "image-syncer" command
 var RootCmd = &cobra.Command{
 	Use:     "image-syncer",
 	Aliases: []string{"image-syncer"},
@@ -55,6 +56,7 @@ func init() {
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
 }
 
+// Execute executes the RootCmd
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)

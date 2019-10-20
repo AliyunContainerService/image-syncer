@@ -7,15 +7,16 @@ import (
 	"strings"
 )
 
-type SyncBlobRecorder struct {
+// SynchronizedBlobRecorder describes a recorder of synchronized blobs
+type SynchronizedBlobRecorder struct {
 	Blobs  map[string](map[string]int64)
 	onDisk *bufio.Writer
 
 	syncC chan int
 }
 
-// Initialize a SyncBlobRecorder.
-func NewSyncBlobRecorder(onDisk string) error {
+// NewSynchronizedBlobRecorder initialize a SynchronizedBlobRecorder.
+func NewSynchronizedBlobRecorder(onDisk string) error {
 	if SynchronizedBlobs != nil {
 		return nil
 	}
@@ -24,7 +25,7 @@ func NewSyncBlobRecorder(onDisk string) error {
 		return err
 	}
 
-	synchronizedBlobs := &SyncBlobRecorder{
+	synchronizedBlobs := &SynchronizedBlobRecorder{
 		Blobs:  map[string](map[string]int64){},
 		syncC:  make(chan int, 1),
 		onDisk: nil,
@@ -54,7 +55,7 @@ func NewSyncBlobRecorder(onDisk string) error {
 }
 
 // Record information of a layer that has been synchronized
-func (slr *SyncBlobRecorder) Record(registry, digest string, size int64) error {
+func (slr *SynchronizedBlobRecorder) Record(registry, digest string, size int64) error {
 	slr.LockRecorder()
 	if slr.Blobs[registry] == nil {
 		slr.Blobs[registry] = map[string]int64{}
@@ -73,21 +74,23 @@ func (slr *SyncBlobRecorder) Record(registry, digest string, size int64) error {
 }
 
 // Query the recorder if a layer has been synchronized
-func (slr *SyncBlobRecorder) Query(registry, digest string) (int64, bool) {
+func (slr *SynchronizedBlobRecorder) Query(registry, digest string) (int64, bool) {
 	slr.LockRecorder()
 	size, exist := slr.Blobs[registry][digest]
 	slr.UnlockRecorder()
 	return size, exist
 }
 
-func (slr *SyncBlobRecorder) GetRegistryRecords(registry string) map[string]int64 {
+// GetRegistryRecords gets records according related to the registry
+func (slr *SynchronizedBlobRecorder) GetRegistryRecords(registry string) map[string]int64 {
 	slr.LockRecorder()
 	recordList := slr.Blobs[registry]
 	slr.UnlockRecorder()
 	return recordList
 }
 
-func (slr *SyncBlobRecorder) UpdateRegistryRecords(registry string, recordList map[string]int64) error {
+// UpdateRegistryRecords updates records related to the registry
+func (slr *SynchronizedBlobRecorder) UpdateRegistryRecords(registry string, recordList map[string]int64) error {
 	slr.LockRecorder()
 	for key, value := range recordList {
 		if slr.Blobs[registry] == nil {
@@ -107,16 +110,19 @@ func (slr *SyncBlobRecorder) UpdateRegistryRecords(registry string, recordList m
 	return nil
 }
 
-func (slr *SyncBlobRecorder) Flush() {
+// Flush records to disk
+func (slr *SynchronizedBlobRecorder) Flush() {
 	slr.LockRecorder()
 	slr.onDisk.Flush()
 	slr.UnlockRecorder()
 }
 
-func (slr *SyncBlobRecorder) LockRecorder() {
+// LockRecorder locks the syncC mutex
+func (slr *SynchronizedBlobRecorder) LockRecorder() {
 	slr.syncC <- 1
 }
 
-func (slr *SyncBlobRecorder) UnlockRecorder() {
+// UnlockRecorder unlocks the syncC mutex
+func (slr *SynchronizedBlobRecorder) UnlockRecorder() {
 	<-slr.syncC
 }

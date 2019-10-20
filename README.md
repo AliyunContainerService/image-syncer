@@ -18,7 +18,6 @@ English | [简体中文](./README-zh_CN.md)
 - Automatic Retries of Failed Sync Tasks, to resolve the network problems while synchronizing
 - Doesn't rely on Docker daemon or other programs
 
-
 ## Usage
 
 ### Install image-syncer
@@ -26,6 +25,7 @@ English | [简体中文](./README-zh_CN.md)
 You can download latest binary release [here](https://github.com/AliyunContainerService/image-syncer/releases)
 
 ### Compile Manually
+
 ```
 go get github.com/AliyunContainerService/image-syncer
 cd $GOPATH/github.com/AliyunContainerService/image-syncer
@@ -137,7 +137,6 @@ make
                  are executed once, reties of failed sync tasks will resolve most occasional network problems during 
                  synchronization
 ```
-
 
 ### FAQs
 

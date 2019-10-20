@@ -9,8 +9,6 @@ jobs:
     working_directory: /go/src/github.com/AliyunContainerService/image-syncer
     steps:
     - checkout
-    - setup_remote_docker:
-          docker_layer_caching: true
     - run:
         name: run tests
         command: |
@@ -22,6 +20,10 @@ jobs:
         command: |
           go test -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic ./...
           bash <(curl -s https://codecov.io/bash)
+    - run:
+        name: compile
+        command: |
+          make -B
   code-check:
     docker:
       - image: sunyuan3/gometalinter:v1
@@ -37,17 +39,13 @@ jobs:
           command: |
             find  ./* -name  "*"  | grep -v vendor | xargs misspell -error
       - run:
-          name: use ShellCheck (https://github.com/koalaman/shellcheck) to check the validateness of shell scripts
-          command: |
-            find ./ -name "*.sh" | grep -v vendor | xargs shellcheck
-      - run:
           name: detect deadcode without tests folder
           command: |
             gometalinter --disable-all --skip vendor --skip tests -E deadcode -d ./...
       - run:
           name: use markdownlint v0.5.0 to lint markdown file (https://github.com/markdownlint/markdownlint)
           command: |
-            find  ./ -name  "*.md" | grep -v vendor | grep -v commandline |  grep -v .github |  grep -v swagger |  grep -v api |  xargs mdl -r ~MD010,~MD013,~MD024,~MD029,~MD033,~MD036
+            find  ./ -name  "*.md" | grep -v vendor | grep -v commandline |  grep -v .github |  grep -v swagger |  grep -v api |  xargs mdl -r ~MD009,~MD010,~MD013,~MD024,~MD029,~MD033,~MD036
       - run:
           name: use markdown-link-check(https://github.com/tcort/markdown-link-check) to check links in markdown files
           command: |

@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// The RepoUrl will divide a images url to <registry>/<namespace>/<repo>:<tag>
-type RepoUrl struct {
+// The RepoURL will divide a images url to <registry>/<namespace>/<repo>:<tag>
+type RepoURL struct {
 	// origin url
 	url string
 
@@ -16,7 +16,8 @@ type RepoUrl struct {
 	tag       string
 }
 
-func NewRepoUrl(url string) (*RepoUrl, error) {
+// NewRepoURL creates a RepoURL
+func NewRepoURL(url string) (*RepoURL, error) {
 	// split to registry/namespace/repoAndTag
 	slice := strings.SplitN(url, "/", 3)
 
@@ -34,7 +35,7 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 	}
 
 	if len(slice) == 3 {
-		return &RepoUrl{
+		return &RepoURL{
 			url:       url,
 			registry:  slice[0],
 			namespace: slice[1],
@@ -42,7 +43,7 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 			tag:       tag,
 		}, nil
 	} else if len(slice) == 2 {
-		return &RepoUrl{
+		return &RepoURL{
 			url:       url,
 			registry:  "registry.hub.docker.com",
 			namespace: slice[0],
@@ -50,7 +51,7 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 			tag:       tag,
 		}, nil
 	} else {
-		return &RepoUrl{
+		return &RepoURL{
 			url:       url,
 			registry:  "registry.hub.docker.com",
 			namespace: "library",
@@ -60,41 +61,50 @@ func NewRepoUrl(url string) (*RepoUrl, error) {
 	}
 }
 
-func (r *RepoUrl) GetUrl() string {
+// GetURL returns the whole url
+func (r *RepoURL) GetURL() string {
 	return r.url
 }
 
-func (r *RepoUrl) GetRegistry() string {
+// GetRegistry returns the registry in a url
+func (r *RepoURL) GetRegistry() string {
 	return r.registry
 }
 
-func (r *RepoUrl) GetNamespace() string {
+// GetNamespace returns the namespace in a url
+func (r *RepoURL) GetNamespace() string {
 	return r.namespace
 }
 
-func (r *RepoUrl) GetRepo() string {
+// GetRepo returns the repository in a url
+func (r *RepoURL) GetRepo() string {
 	return r.repo
 }
 
-func (r *RepoUrl) GetTag() string {
+// GetTag returns the tag in a url
+func (r *RepoURL) GetTag() string {
 	return r.tag
 }
 
-func (r *RepoUrl) GetRepoWithNamespace() string {
+// GetRepoWithNamespace returns namespace/repository in a url
+func (r *RepoURL) GetRepoWithNamespace() string {
 	return r.namespace + "/" + r.repo
 }
 
-func (r *RepoUrl) GetRepoWithTag() string {
+// GetRepoWithTag returns repository:tag in a url
+func (r *RepoURL) GetRepoWithTag() string {
 	if r.tag == "" {
 		return r.repo
 	}
 	return r.repo + ":" + r.tag
 }
 
-func (r *RepoUrl) GetUrlWithoutTag() string {
+// GetURLWithoutTag returns registry/namespace/repository in a url
+func (r *RepoURL) GetURLWithoutTag() string {
 	return r.registry + "/" + r.namespace + "/" + r.repo
 }
 
+// CheckIfIncludeTag checks if a repository string includes tag
 func CheckIfIncludeTag(repository string) bool {
 	return strings.Contains(repository, ":")
 }

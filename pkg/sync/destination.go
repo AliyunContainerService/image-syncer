@@ -10,7 +10,7 @@ import (
 	"github.com/containers/image/types"
 )
 
-// A PushTask reference to a remote image we will push to
+// ImageDestination is a reference of a remote image we will push to
 type ImageDestination struct {
 	destinationRef types.ImageReference
 	destination    types.ImageDestination
@@ -23,8 +23,8 @@ type ImageDestination struct {
 	tag        string
 }
 
-// Generate a PullTask by repository, the repository string must include "tag",
-// if username or password is empty, access to repository will be anonymous.
+// NewImageDestination generates a ImageDestination by repository, the repository string must include "tag".
+// If username or password is empty, access to repository will be anonymous.
 func NewImageDestination(registry, repository, tag, username, password string, insecure bool) (*ImageDestination, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
@@ -52,7 +52,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), "ImageDestination", repository)
+	ctx := context.WithValue(context.Background(), interface{}("ImageDestination"), repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
@@ -75,12 +75,12 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	}, nil
 }
 
-// Push a manifest file to destinate image
+// PushManifest push a manifest file to destinate image
 func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 	return i.destination.PutManifest(i.ctx, manifestByte)
 }
 
-// Push a blob to destinate image
+// PutABlob push a blob to destinate image
 func (i *ImageDestination) PutABlob(blob io.ReadCloser, blobInfo types.BlobInfo) error {
 	_, err := i.destination.PutBlob(i.ctx, blob, types.BlobInfo{
 		Digest: blobInfo.Digest,
@@ -93,18 +93,22 @@ func (i *ImageDestination) PutABlob(blob io.ReadCloser, blobInfo types.BlobInfo)
 	return err
 }
 
+// Close a ImageDestination
 func (i *ImageDestination) Close() error {
 	return i.destination.Close()
 }
 
+// GetRegistry returns the registry of a ImageDestination
 func (i *ImageDestination) GetRegistry() string {
 	return i.registry
 }
 
+// GetRepository returns the repository of a ImageDestination
 func (i *ImageDestination) GetRepository() string {
 	return i.repository
 }
 
+// GetTag return the tag of a ImageDestination
 func (i *ImageDestination) GetTag() string {
 	return i.tag
 }
