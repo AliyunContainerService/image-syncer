@@ -29,5 +29,11 @@ This problem may happens if the records file that already exists was not generat
 As getting tags of a ACR private repository needs to authenticate in another way defer from username/password, if you want to synchronize sources of ACR private repository, you need to specify all the tags that you want to synchronize.
 
 由于`image-syncer`现在不支持password/username之外的认证方式，而如果要获取ACR私有仓库所有的tags，需要进行额外的认证；如果你需要以ACR私有仓库作为源同步镜像，需要手动指定所有需要同步的tag。
- 
 
+## “500 Internal Server Error”
+
+When you are confused with such error logs of image-syncer, check if some of manifests in your docker images are schema V1 
+(which was deprecated by docker) first. As this tool doesn't support auto-transformation of manifest for schema V1 to schema 
+V2, you cannot synchronize a docker image with schema V1 manifest to a registry which doesn't support it (e.g., Harbor, etc.).
+
+当出现这种报错时，首先检查是否是镜像是旧版本，并且manifest类型为 Schema 1（已被docker弃用）。由于本工具不支持manifest类型的自动转换，并且目前新版本harbor不再支持类型为 Schema 1 的manifest，所以无法通过本工具将manifest类型为 Schema 1 的docker镜像同步到不支持该类型manifest的镜像存储中（比如harbor）
