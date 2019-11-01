@@ -73,6 +73,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		sourceRef:  srcRef,
 		source:     rawSource,
 		ctx:        ctx,
+		sysctx:     sysctx,
 		registry:   registry,
 		repository: repository,
 		tag:        tag,
