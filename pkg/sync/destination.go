@@ -69,6 +69,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		destinationRef: destRef,
 		destination:    rawDestination,
 		ctx:            ctx,
+		sysctx:         sysctx,
 		registry:       registry,
 		repository:     repository,
 		tag:            tag,
