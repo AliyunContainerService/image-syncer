@@ -51,7 +51,9 @@ func NewSyncClient(configFile, logFile, recordsFile string, routineNum, retries 
 	}
 
 	// init blob recorder
-	sync.NewSynchronizedBlobRecorder(recordsFile)
+	if err := sync.NewSynchronizedBlobRecorder(recordsFile); err != nil {
+		return nil, err
+	}
 
 	return &Client{
 		taskList:                   list.New(),
