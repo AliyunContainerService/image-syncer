@@ -49,9 +49,9 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&recordPath, "records", defaultRecordPath,
 		"records file path, to record the blobs that have been synced, auto generated if not exist")
 	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
-		"default designate registry url when designate registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
+		"default destinate registry url when destinate registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
 	RootCmd.PersistentFlags().StringVar(&defaultNamespace, "namespace", os.Getenv("DEFAULT_NAMESPACE"),
-		"default designate namespace when designate namespace is not given in the config file, can also be set with DEFAULT_NAMESPACE environment value")
+		"default destinate namespace when destinate namespace is not given in the config file, can also be set with DEFAULT_NAMESPACE environment value")
 	RootCmd.PersistentFlags().IntVarP(&procNum, "proc", "p", 5, "numbers of working goroutines")
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
 }
