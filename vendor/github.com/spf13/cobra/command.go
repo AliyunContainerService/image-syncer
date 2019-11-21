@@ -17,7 +17,6 @@ package cobra
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,8 +26,6 @@ import (
 
 	flag "github.com/spf13/pflag"
 )
-
-var ErrSubCommandRequired = errors.New("subcommand is required")
 
 // FParseErrWhitelist configures Flag parse errors to be ignored
 type FParseErrWhitelist flag.ParseErrorsWhitelist
@@ -231,7 +228,7 @@ func (c *Command) SetErr(newErr io.Writer) {
 	c.errWriter = newErr
 }
 
-// SetIn sets the source for input data
+// SetOut sets the source for input data
 // If newIn is nil, os.Stdin is used.
 func (c *Command) SetIn(newIn io.Reader) {
 	c.inReader = newIn
@@ -300,7 +297,7 @@ func (c *Command) ErrOrStderr() io.Writer {
 	return c.getErr(os.Stderr)
 }
 
-// InOrStdin returns output to stderr
+// ErrOrStderr returns output to stderr
 func (c *Command) InOrStdin() io.Reader {
 	return c.getIn(os.Stdin)
 }
@@ -372,7 +369,7 @@ func (c *Command) HelpFunc() func(*Command, []string) {
 	}
 	return func(c *Command, a []string) {
 		c.mergePersistentFlags()
-		err := tmpl(c.OutOrStderr(), c.HelpTemplate(), c)
+		err := tmpl(c.OutOrStdout(), c.HelpTemplate(), c)
 		if err != nil {
 			c.Println(err)
 		}
@@ -789,7 +786,7 @@ func (c *Command) execute(a []string) (err error) {
 	}
 
 	if !c.Runnable() {
-		return ErrSubCommandRequired
+		return flag.ErrHelp
 	}
 
 	c.preRun()
@@ -921,14 +918,6 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 		if err == flag.ErrHelp {
 			cmd.HelpFunc()(cmd, args)
 			return cmd, nil
-		}
-
-		// If command wasn't runnable, show full help, but do return the error.
-		// This will result in apps by default returning a non-success exit code, but also gives them the option to
-		// handle specially.
-		if err == ErrSubCommandRequired {
-			cmd.HelpFunc()(cmd, args)
-			return cmd, err
 		}
 
 		// If root command has SilentErrors flagged,
