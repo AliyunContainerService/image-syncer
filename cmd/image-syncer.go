@@ -45,7 +45,7 @@ func init() {
 	}
 
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", defaultConfigFile, "config file path")
-	RootCmd.PersistentFlags().StringVar(&logPath, "log", defaultLogPath, "log file path (defalut in os.Stderr)")
+	RootCmd.PersistentFlags().StringVar(&logPath, "log", defaultLogPath, "log file path (default in os.Stderr)")
 	RootCmd.PersistentFlags().StringVar(&recordPath, "records", defaultRecordPath,
 		"records file path, to record the blobs that have been synced, auto generated if not exist")
 	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
