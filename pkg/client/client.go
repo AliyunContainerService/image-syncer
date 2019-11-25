@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"strings"
+	sync2 "sync"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
@@ -75,12 +76,15 @@ func NewSyncClient(configFile, logFile, recordsFile string, routineNum, retries 
 func (c *Client) Run() {
 	fmt.Println("Start to generate sync tasks, please wait ...")
 
-	var finishChan = make(chan int, c.routineNum)
+	//var finishChan = make(chan struct{}, c.routineNum)
 
 	// opem num of goroutines and wait c for close
 	openRoutinesGenTaskAndWaitForFinish := func() {
+		wg := sync2.WaitGroup{}
 		for i := 0; i < c.routineNum; i++ {
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				for {
 					urlPair, empty := c.GetAURLPair()
 					// no more task to generate
@@ -97,17 +101,17 @@ func (c *Client) Run() {
 						c.PutURLPairs(moreURLPairs)
 					}
 				}
-				finishChan <- 1
 			}()
 		}
-		for i := 0; i < c.routineNum; i++ {
-			<-finishChan
-		}
+		wg.Wait()
 	}
 
 	openRoutinesHandleTaskAndWaitForFinish := func() {
+		wg := sync2.WaitGroup{}
 		for i := 0; i < c.routineNum; i++ {
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				for {
 					task, empty := c.GetATask()
 					// no more tasks need to handle
@@ -119,13 +123,10 @@ func (c *Client) Run() {
 						c.PutAFailedTask(task)
 					}
 				}
-				finishChan <- 1
 			}()
 		}
 
-		for i := 0; i < c.routineNum; i++ {
-			<-finishChan
-		}
+		wg.Wait()
 	}
 
 	for source, dest := range c.config.GetImageList() {
