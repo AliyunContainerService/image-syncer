@@ -6,12 +6,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const logTimestampFormat = "2006-01-02 15:04:05"
+
 // NewFileLogger creates a log file and init logger
 func NewFileLogger(path string) *logrus.Logger {
 	logger := logrus.New()
 
 	// default log to os.Stderr
 	if path == "" {
+		logger.Formatter = &logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: logTimestampFormat,
+		}
 		return logger
 	}
 
@@ -23,7 +29,7 @@ func NewFileLogger(path string) *logrus.Logger {
 
 	// use json formatter
 	logger.Formatter = &logrus.JSONFormatter{
-		TimestampFormat: "2006-01-02 15:04:05",
+		TimestampFormat: logTimestampFormat,
 	}
 	return logger
 }
