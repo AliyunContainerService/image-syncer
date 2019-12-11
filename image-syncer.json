@@ -12,6 +12,11 @@
         "registry.hub.docker.com": {
             "username": "xxx",
             "password": "xxxxxxxxxx"
+        },
+        "quay.io/coreos": {                       
+            "username": "abc",              
+            "password": "xxxxxxxxx",
+            "insecure": true  
         }
     },
     "images": {       

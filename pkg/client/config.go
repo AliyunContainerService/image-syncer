@@ -52,7 +52,14 @@ func NewSyncConfig(configFilePath, defaultDestRegistry, defaultDestNamespace str
 }
 
 // GetAuth gets the authentication information in Config
-func (c *Config) GetAuth(registry string) (Auth, bool) {
+func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
+	// key of each AuthList item can be "registry/namespace" or "registry" only
+	registryAndNamespace := registry + "/" + namespace
+
+	if moreSpecificAuth, exit := c.AuthList[registryAndNamespace]; exit {
+		return moreSpecificAuth, exit
+	}
+
 	auth, exist := c.AuthList[registry]
 	return auth, exist
 }
