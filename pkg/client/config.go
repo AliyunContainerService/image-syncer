@@ -56,8 +56,8 @@ func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
 	// key of each AuthList item can be "registry/namespace" or "registry" only
 	registryAndNamespace := registry + "/" + namespace
 
-	if moreSpecificAuth, exit := c.AuthList[registryAndNamespace]; exit {
-		return moreSpecificAuth, exit
+	if moreSpecificAuth, exist := c.AuthList[registryAndNamespace]; exist {
+		return moreSpecificAuth, exist
 	}
 
 	auth, exist := c.AuthList[registry]
