@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/AliyunContainerService/image-syncer.svg?style=svg)](https://circleci.com/gh/AliyunContainerService/image-syncer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AliyunContainerService/image-syncer)](https://goreportcard.com/report/github.com/AliyunContainerService/image-syncer)
-[![codecov](https://codecov.io/gh/AliyunContainerService/image-syncer/branch/master/graph/badge.svg)](https://codecov.io/gh/AliyunContainerService/image-syncer)
+[![codecov](https://codecov.io/gh/AliyunContainerService/image-syncer/graph/badge.svg)](https://codecov.io/gh/AliyunContainerService/image-syncer)
 
 `image-syncer` is a docker registry tools. With `image-syncer` you can synchronize docker images from some source registries to target registries, which include most popular public docker registry services.
 
