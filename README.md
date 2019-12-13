@@ -53,7 +53,8 @@ make
     "auth": {               // Authentication fields, each object has a URL as key and a username/password pair as value, 
                             // if authentication object is not provided for a registry, access to the registry will be anonymous.
         
-        "quay.io": {        // This URL of registry should be the same as registry used below in "images fields".
+        "quay.io": {        // This "registry" or "registry/namespace" string should be the same as registry or registry/namespace used below in "images" field.  
+                            // The format of "registry/namespace" will be more prior matched than "registry"
             "username": "xxx",             
             "password": "xxxxxxxxx",
             "insecure": true         // "insecure" field needs to be true if this registry is a http service, default value is false, version of image-syncer need to be later than v1.0.1 to support this field
@@ -65,6 +66,11 @@ make
         "registry.hub.docker.com": {
             "username": "xxx",
             "password": "xxxxxxxxxx"
+        },
+        "quay.io/coreos": {     // "registry/namespace" format is supported after v1.0.3 of image-syncer     
+            "username": "abc",              
+            "password": "xxxxxxxxx",
+            "insecure": true  
         }
     },
     "images": {
