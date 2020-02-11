@@ -23,5 +23,5 @@
         "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
         "xxxx":"xxxxx",
         "xxx/xxx/xx:tag1,tag2,tag3":"xxx/xxx/xx"
-   }													 
+   }                           
 }
