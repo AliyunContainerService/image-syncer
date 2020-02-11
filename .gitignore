@@ -1,5 +1,6 @@
 image-syncer
 records
+.idea
 .vscode
 *.log
 *.conf
