@@ -74,6 +74,15 @@ func NewRepoURL(url string) (*RepoURL, error) {
 
 // GetURL returns the whole url
 func (r *RepoURL) GetURL() string {
+	url := r.GetURLWithoutTag()
+	if r.tag != "" {
+		url = url + ":" + r.tag
+	}
+	return url
+}
+
+// GetOriginURL returns the whole url
+func (r *RepoURL) GetOriginURL() string {
 	return r.url
 }
 
