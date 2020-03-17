@@ -43,6 +43,17 @@ func NewRepoURL(url string) (*RepoURL, error) {
 			tag:       tag,
 		}, nil
 	} else if len(slice) == 2 {
+		// if first string is a domain
+		if strings.Contains(slice[0], ".") {
+			return &RepoURL{
+				url:       url,
+				registry:  slice[0],
+				namespace: "",
+				repo:      repo,
+				tag:       tag,
+			}, nil
+		}
+
 		return &RepoURL{
 			url:       url,
 			registry:  "registry.hub.docker.com",
@@ -88,6 +99,9 @@ func (r *RepoURL) GetTag() string {
 
 // GetRepoWithNamespace returns namespace/repository in a url
 func (r *RepoURL) GetRepoWithNamespace() string {
+	if r.namespace == "" {
+		return r.repo
+	}
 	return r.namespace + "/" + r.repo
 }
 
@@ -101,6 +115,9 @@ func (r *RepoURL) GetRepoWithTag() string {
 
 // GetURLWithoutTag returns registry/namespace/repository in a url
 func (r *RepoURL) GetURLWithoutTag() string {
+	if r.namespace == "" {
+		return r.registry + "/" + r.repo
+	}
 	return r.registry + "/" + r.namespace + "/" + r.repo
 }
 
