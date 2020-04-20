@@ -53,7 +53,7 @@ func (t *Task) Run() error {
 
 	// blob transformation
 	for _, b := range blobInfos {
-		if sizeInRecord, exist := SynchronizedBlobs.Query(t.destination.GetRegistry(), string(b.Digest)); !exist {
+		if sizeInRecord, exist := SynchronizedBlobs.Query(t.destination.GetRegistry()+"/"+t.destination.GetRepository(), string(b.Digest)); !exist {
 			// pull a blob from source
 			blob, size, err := t.source.GetABlob(b)
 			if err != nil {
@@ -68,12 +68,12 @@ func (t *Task) Run() error {
 			}
 			t.Infof("Put blob %s(%v) to %s/%s:%s success", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 
-			if err := SynchronizedBlobs.Record(t.destination.GetRegistry(), string(b.Digest), size); err != nil {
+			if err := SynchronizedBlobs.Record(t.destination.GetRegistry()+"/"+t.destination.GetRepository(), string(b.Digest), size); err != nil {
 				t.Infof("Record blobs error: %v, it will slow down you speed", err)
 			}
 		} else {
 			// print the log of ignored blob
-			t.Infof("Blob %s(%v) has been pushed to %s according to records, will not be pulled", b.Digest, sizeInRecord, t.destination.GetRegistry())
+			t.Infof("Blob %s(%v) has been pushed to %s according to records, will not be pulled", b.Digest, sizeInRecord, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
 		}
 	}
 

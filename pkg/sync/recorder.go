@@ -36,7 +36,7 @@ func NewSynchronizedBlobRecorder(onDisk string) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// each line of the recorder file on disk looks like: "<registry>,<digest_of_layer>,<layer_size>\n"
+		// each line of the recorder file on disk looks like: "<registry/namespace/repository>,<digest_of_layer>,<layer_size>\n"
 		content := strings.Split(line, ",")
 		if len(content) != 3 || err != nil {
 			// ignore the illegal line of recorder file
@@ -55,15 +55,15 @@ func NewSynchronizedBlobRecorder(onDisk string) error {
 }
 
 // Record information of a layer that has been synchronized
-func (slr *SynchronizedBlobRecorder) Record(registry, digest string, size int64) error {
+func (slr *SynchronizedBlobRecorder) Record(repositoryURL, digest string, size int64) error {
 	slr.LockRecorder()
-	if slr.Blobs[registry] == nil {
-		slr.Blobs[registry] = map[string]int64{}
+	if slr.Blobs[repositoryURL] == nil {
+		slr.Blobs[repositoryURL] = map[string]int64{}
 	}
 
-	slr.Blobs[registry][digest] = size
+	slr.Blobs[repositoryURL][digest] = size
 	if slr.onDisk != nil {
-		_, err := slr.onDisk.WriteString(registry + "," + digest + "," + strconv.FormatInt(size, 10) + "\n")
+		_, err := slr.onDisk.WriteString(repositoryURL + "," + digest + "," + strconv.FormatInt(size, 10) + "\n")
 		if err != nil {
 			slr.UnlockRecorder()
 			return err
@@ -74,32 +74,32 @@ func (slr *SynchronizedBlobRecorder) Record(registry, digest string, size int64)
 }
 
 // Query the recorder if a layer has been synchronized
-func (slr *SynchronizedBlobRecorder) Query(registry, digest string) (int64, bool) {
+func (slr *SynchronizedBlobRecorder) Query(repositoryURL, digest string) (int64, bool) {
 	slr.LockRecorder()
-	size, exist := slr.Blobs[registry][digest]
+	size, exist := slr.Blobs[repositoryURL][digest]
 	slr.UnlockRecorder()
 	return size, exist
 }
 
-// GetRegistryRecords gets records according related to the registry
-func (slr *SynchronizedBlobRecorder) GetRegistryRecords(registry string) map[string]int64 {
+// GetRecords gets records according related to the repositoryURL
+func (slr *SynchronizedBlobRecorder) GetRecords(repositoryURL string) map[string]int64 {
 	slr.LockRecorder()
-	recordList := slr.Blobs[registry]
+	recordList := slr.Blobs[repositoryURL]
 	slr.UnlockRecorder()
 	return recordList
 }
 
-// UpdateRegistryRecords updates records related to the registry
-func (slr *SynchronizedBlobRecorder) UpdateRegistryRecords(registry string, recordList map[string]int64) error {
+// UpdateRecords updates records related to the repositoryURL
+func (slr *SynchronizedBlobRecorder) UpdateRecords(repositoryURL string, recordList map[string]int64) error {
 	slr.LockRecorder()
 	for key, value := range recordList {
-		if slr.Blobs[registry] == nil {
-			slr.Blobs[registry] = map[string]int64{}
+		if slr.Blobs[repositoryURL] == nil {
+			slr.Blobs[repositoryURL] = map[string]int64{}
 		}
 
-		slr.Blobs[registry][key] = value
+		slr.Blobs[repositoryURL][key] = value
 		if slr.onDisk != nil {
-			_, err := slr.onDisk.WriteString(registry + "," + key + "," + strconv.FormatInt(value, 10) + "\n")
+			_, err := slr.onDisk.WriteString(repositoryURL + "," + key + "," + strconv.FormatInt(value, 10) + "\n")
 			if err != nil {
 				slr.UnlockRecorder()
 				return err
