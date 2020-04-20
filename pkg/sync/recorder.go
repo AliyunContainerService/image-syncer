@@ -55,15 +55,15 @@ func NewSynchronizedBlobRecorder(onDisk string) error {
 }
 
 // Record information of a layer that has been synchronized
-func (slr *SynchronizedBlobRecorder) Record(repositoryUrl, digest string, size int64) error {
+func (slr *SynchronizedBlobRecorder) Record(repositoryURL, digest string, size int64) error {
 	slr.LockRecorder()
-	if slr.Blobs[repositoryUrl] == nil {
-		slr.Blobs[repositoryUrl] = map[string]int64{}
+	if slr.Blobs[repositoryURL] == nil {
+		slr.Blobs[repositoryURL] = map[string]int64{}
 	}
 
-	slr.Blobs[repositoryUrl][digest] = size
+	slr.Blobs[repositoryURL][digest] = size
 	if slr.onDisk != nil {
-		_, err := slr.onDisk.WriteString(repositoryUrl + "," + digest + "," + strconv.FormatInt(size, 10) + "\n")
+		_, err := slr.onDisk.WriteString(repositoryURL + "," + digest + "," + strconv.FormatInt(size, 10) + "\n")
 		if err != nil {
 			slr.UnlockRecorder()
 			return err
@@ -74,32 +74,32 @@ func (slr *SynchronizedBlobRecorder) Record(repositoryUrl, digest string, size i
 }
 
 // Query the recorder if a layer has been synchronized
-func (slr *SynchronizedBlobRecorder) Query(repositoryUrl, digest string) (int64, bool) {
+func (slr *SynchronizedBlobRecorder) Query(repositoryURL, digest string) (int64, bool) {
 	slr.LockRecorder()
-	size, exist := slr.Blobs[repositoryUrl][digest]
+	size, exist := slr.Blobs[repositoryURL][digest]
 	slr.UnlockRecorder()
 	return size, exist
 }
 
-// GetRegistryRecords gets records according related to the repositoryUrl
-func (slr *SynchronizedBlobRecorder) GetRecords(repositoryUrl string) map[string]int64 {
+// GetRecords gets records according related to the repositoryURL
+func (slr *SynchronizedBlobRecorder) GetRecords(repositoryURL string) map[string]int64 {
 	slr.LockRecorder()
-	recordList := slr.Blobs[repositoryUrl]
+	recordList := slr.Blobs[repositoryURL]
 	slr.UnlockRecorder()
 	return recordList
 }
 
-// UpdateRegistryRecords updates records related to the repositoryUrl
-func (slr *SynchronizedBlobRecorder) UpdateRecords(repositoryUrl string, recordList map[string]int64) error {
+// UpdateRecords updates records related to the repositoryURL
+func (slr *SynchronizedBlobRecorder) UpdateRecords(repositoryURL string, recordList map[string]int64) error {
 	slr.LockRecorder()
 	for key, value := range recordList {
-		if slr.Blobs[repositoryUrl] == nil {
-			slr.Blobs[repositoryUrl] = map[string]int64{}
+		if slr.Blobs[repositoryURL] == nil {
+			slr.Blobs[repositoryURL] = map[string]int64{}
 		}
 
-		slr.Blobs[repositoryUrl][key] = value
+		slr.Blobs[repositoryURL][key] = value
 		if slr.onDisk != nil {
-			_, err := slr.onDisk.WriteString(repositoryUrl + "," + key + "," + strconv.FormatInt(value, 10) + "\n")
+			_, err := slr.onDisk.WriteString(repositoryURL + "," + key + "," + strconv.FormatInt(value, 10) + "\n")
 			if err != nil {
 				slr.UnlockRecorder()
 				return err
