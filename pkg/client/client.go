@@ -277,89 +277,113 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 // GetATask return a sync.Task struct if the task list is not empty
 func (c *Client) GetATask() (*sync.Task, bool) {
 	c.taskListChan <- 1
+	defer func() {
+		<-c.taskListChan
+	}()
+
 	task := c.taskList.Front()
 	if task == nil {
-		<-c.taskListChan
 		return nil, true
 	}
 	c.taskList.Remove(task)
-	<-c.taskListChan
+
 	return task.Value.(*sync.Task), false
 }
 
 // PutATask puts a sync.Task struct to task list
 func (c *Client) PutATask(task *sync.Task) {
 	c.taskListChan <- 1
+	defer func() {
+		<-c.taskListChan
+	}()
+
 	if c.taskList != nil {
 		c.taskList.PushBack(task)
 	}
-	<-c.taskListChan
 }
 
 // GetAURLPair gets a URLPair from urlPairList
 func (c *Client) GetAURLPair() (*URLPair, bool) {
 	c.urlPairListChan <- 1
+	defer func() {
+		<-c.urlPairListChan
+	}()
+
 	urlPair := c.urlPairList.Front()
 	if urlPair == nil {
-		<-c.urlPairListChan
 		return nil, true
 	}
 	c.urlPairList.Remove(urlPair)
-	<-c.urlPairListChan
+
 	return urlPair.Value.(*URLPair), false
 }
 
 // PutURLPairs puts a URLPair array to urlPairList
 func (c *Client) PutURLPairs(urlPairs []*URLPair) {
 	c.urlPairListChan <- 1
+	defer func() {
+		<-c.urlPairListChan
+	}()
+
 	if c.urlPairList != nil {
 		for _, urlPair := range urlPairs {
 			c.urlPairList.PushBack(urlPair)
 		}
 	}
-	<-c.urlPairListChan
 }
 
 // GetAFailedTask gets a failed task from failedTaskList
 func (c *Client) GetAFailedTask() (*sync.Task, bool) {
 	c.failedTaskListChan <- 1
+	defer func() {
+		<-c.failedTaskListChan
+	}()
+
 	failedTask := c.failedTaskList.Front()
 	if failedTask == nil {
-		<-c.failedTaskListChan
 		return nil, true
 	}
 	c.failedTaskList.Remove(failedTask)
-	<-c.failedTaskListChan
+
 	return failedTask.Value.(*sync.Task), false
 }
 
 // PutAFailedTask puts a failed task to failedTaskList
 func (c *Client) PutAFailedTask(failedTask *sync.Task) {
 	c.failedTaskListChan <- 1
+	defer func() {
+		<-c.failedTaskListChan
+	}()
+
 	if c.failedTaskList != nil {
 		c.failedTaskList.PushBack(failedTask)
 	}
-	<-c.failedTaskListChan
 }
 
 // GetAFailedURLPair get a URLPair from failedTaskGenerateList
 func (c *Client) GetAFailedURLPair() (*URLPair, bool) {
 	c.failedTaskGenerateListChan <- 1
+	defer func() {
+		<-c.failedTaskGenerateListChan
+	}()
+
 	failedURLPair := c.failedTaskGenerateList.Front()
 	if failedURLPair == nil {
-		<-c.failedTaskGenerateListChan
 		return nil, true
 	}
 	c.failedTaskGenerateList.Remove(failedURLPair)
-	<-c.failedTaskGenerateListChan
+
 	return failedURLPair.Value.(*URLPair), false
 }
 
 // PutAFailedURLPair puts a URLPair to failedTaskGenerateList
 func (c *Client) PutAFailedURLPair(failedURLPair *URLPair) {
 	c.failedTaskGenerateListChan <- 1
+	defer func() {
+		<-c.failedTaskGenerateListChan
+	}()
+
 	if c.failedTaskGenerateList != nil {
 		c.failedTaskGenerateList.PushBack(failedURLPair)
 	}
-	<-c.failedTaskGenerateListChan
 }
