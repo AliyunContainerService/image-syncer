@@ -94,6 +94,17 @@ func (i *ImageDestination) PutABlob(blob io.ReadCloser, blobInfo types.BlobInfo)
 	return err
 }
 
+// TryReuseBlob 
+func (i *ImageDestination) TryReuseBlob(blobInfo types.BlobInfo, cache types.BlobInfoCache) error {
+	_, _, err := i.destination.TryReusingBlob(i.ctx, types.BlobInfo{
+		Digest: blobInfo.Digest,
+		Size:   blobInfo.Size,
+	}, cache, true)
+
+
+	return err
+}
+
 // Close a ImageDestination
 func (i *ImageDestination) Close() error {
 	return i.destination.Close()

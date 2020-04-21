@@ -72,6 +72,9 @@ func (t *Task) Run() error {
 				t.Infof("Record blobs error: %v, it will slow down you speed", err)
 			}
 		} else {
+			// t.destination.destination.TryReusingBlob()
+			t.destination.TryReuseBlob(b, NoCache);//TODO NoCache: use Cache
+
 			// print the log of ignored blob
 			t.Infof("Blob %s(%v) has been pushed to %s according to records, will not be pulled", b.Digest, sizeInRecord, t.destination.GetRegistry())
 		}
