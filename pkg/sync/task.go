@@ -8,10 +8,6 @@ import (
 )
 
 var (
-	// SynchronizedBlobs is a map record the synchronized layer for the same registry
-	// the map is going to look something like: <registry>:<digest>:<size>
-	SynchronizedBlobs *SynchronizedBlobRecorder
-
 	// NoCache used to disable a blobinfocache
 	NoCache = none.NoCache
 )
@@ -53,7 +49,12 @@ func (t *Task) Run() error {
 
 	// blob transformation
 	for _, b := range blobInfos {
-		if sizeInRecord, exist := SynchronizedBlobs.Query(t.destination.GetRegistry()+"/"+t.destination.GetRepository(), string(b.Digest)); !exist {
+		blobExist, err := t.destination.CheckBlobExist(b)
+		if err != nil {
+			return t.Errorf("Chechk blob %s(%v) to %s/%s:%s %s exist error: %v", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+		}
+
+		if !blobExist {
 			// pull a blob from source
 			blob, size, err := t.source.GetABlob(b)
 			if err != nil {
@@ -67,13 +68,9 @@ func (t *Task) Run() error {
 				return t.Errorf("Put blob %s(%v) to %s/%s:%s failed: %v", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
 			}
 			t.Infof("Put blob %s(%v) to %s/%s:%s success", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
-
-			if err := SynchronizedBlobs.Record(t.destination.GetRegistry()+"/"+t.destination.GetRepository(), string(b.Digest), size); err != nil {
-				t.Infof("Record blobs error: %v, it will slow down you speed", err)
-			}
 		} else {
 			// print the log of ignored blob
-			t.Infof("Blob %s(%v) has been pushed to %s according to records, will not be pulled", b.Digest, sizeInRecord, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
+			t.Infof("Blob %s(%v) has been pushed to %s, will not be pulled", b.Digest, b.Size, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
 		}
 	}
 
