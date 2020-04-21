@@ -94,6 +94,16 @@ func (i *ImageDestination) PutABlob(blob io.ReadCloser, blobInfo types.BlobInfo)
 	return err
 }
 
+// CheckBlobExist checks if a blob exist for destination
+func (i *ImageDestination) CheckBlobExist(blobInfo types.BlobInfo) (bool, error) {
+	exist, _, err := i.destination.TryReusingBlob(i.ctx, types.BlobInfo{
+		Digest: blobInfo.Digest,
+		Size:   blobInfo.Size,
+	}, NoCache, false)
+
+	return exist, err
+}
+
 // Close a ImageDestination
 func (i *ImageDestination) Close() error {
 	return i.destination.Close()

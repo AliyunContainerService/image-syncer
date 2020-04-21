@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	logPath, configFile, recordPath, defaultRegistry, defaultNamespace string
+	logPath, configFile, defaultRegistry, defaultNamespace string
 
 	procNum, retries int
 )
@@ -24,7 +24,7 @@ var RootCmd = &cobra.Command{
 	Complete documentation is available at https://github.com/AliyunContainerService/image-syncer`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// work starts here
-		client, err := client.NewSyncClient(configFile, logPath, recordPath, procNum, retries, defaultRegistry, defaultNamespace)
+		client, err := client.NewSyncClient(configFile, logPath, procNum, retries, defaultRegistry, defaultNamespace)
 		if err != nil {
 			return fmt.Errorf("init sync client error: %v", err)
 		}
@@ -35,19 +35,16 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	var defaultLogPath, defaultConfigFile, defaultRecordPath string
+	var defaultLogPath, defaultConfigFile string
 
 	pwd, err := os.Getwd()
 	if err == nil {
 		defaultLogPath = ""
 		defaultConfigFile = pwd + "/" + "image-syncer.json"
-		defaultRecordPath = pwd + "/" + "records"
 	}
 
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", defaultConfigFile, "config file path")
 	RootCmd.PersistentFlags().StringVar(&logPath, "log", defaultLogPath, "log file path (default in os.Stderr)")
-	RootCmd.PersistentFlags().StringVar(&recordPath, "records", defaultRecordPath,
-		"records file path, to record the blobs that have been synced, auto generated if not exist")
 	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
 		"default destinate registry url when destinate registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
 	RootCmd.PersistentFlags().StringVar(&defaultNamespace, "namespace", os.Getenv("DEFAULT_NAMESPACE"),

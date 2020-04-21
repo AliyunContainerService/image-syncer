@@ -43,17 +43,12 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, logFile, recordsFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
+func NewSyncClient(configFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
 	logger := NewFileLogger(logFile)
 
 	config, err := NewSyncConfig(configFile, defaultDestRegistry, defaultDestNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("Generate confg error: %v", err)
-	}
-
-	// init blob recorder
-	if err := sync.NewSynchronizedBlobRecorder(recordsFile); err != nil {
-		return nil, err
 	}
 
 	return &Client{
@@ -164,8 +159,6 @@ func (c *Client) Run() {
 			openRoutinesHandleTaskAndWaitForFinish()
 		}
 	}
-
-	sync.SynchronizedBlobs.Flush()
 
 	fmt.Printf("Finished, %v sync tasks failed, %v tasks generate failed\n", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
 	c.logger.Infof("Finished, %v sync tasks failed, %v tasks generate failed", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
