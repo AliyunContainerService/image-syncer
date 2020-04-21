@@ -18,6 +18,10 @@ This problem may happens if the records file that already exists was not generat
 
 在用错了records文件的情况下可能会发生，这个错误的records文件记录了之前没有同步过的镜像blog。如果不确定正确的records文件在哪，可以用个新的records文件路径生成一个新的records文件，但是这样同步会耗费更长的时间。
 
+image-syncer remove the dependence of records file after v1.1.0
+
+image-syncer 在 >= v1.1.0 版本中移除了对于records文件的依赖
+
 ## Occasional network problems（常见的偶发网络问题）
 
 "read: connection reset by peer" happens if the source of registry has network limits; "TLS handshake timeout" happens if network delay gets high; "DIGEST_INVALID" happens if image blobs is damaged in network traffic;
