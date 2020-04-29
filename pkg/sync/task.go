@@ -51,7 +51,7 @@ func (t *Task) Run() error {
 	for _, b := range blobInfos {
 		blobExist, err := t.destination.CheckBlobExist(b)
 		if err != nil {
-			return t.Errorf("Chechk blob %s(%v) to %s/%s:%s %s exist error: %v", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+			return t.Errorf("Check blob %s(%v) to %s/%s:%s exist error: %v", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
 		}
 
 		if !blobExist {
