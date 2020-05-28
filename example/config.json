@@ -1,9 +1,9 @@
 {
     "auth": {
-        "quay.io": {                       
-            "username": "xxx",              
+        "quay.io": {
+            "username": "xxx",
             "password": "xxxxxxxxx",
-            "insecure": true  
+            "insecure": true
         },
         "registry.cn-beijing.aliyuncs.com": {
             "username": "xxx",
@@ -13,15 +13,17 @@
             "username": "xxx",
             "password": "xxxxxxxxxx"
         },
-        "quay.io/coreos": {                       
-            "username": "abc",              
+        "quay.io/coreos": {
+            "username": "abc",
             "password": "xxxxxxxxx",
             "insecure": true  
         }
     },
-    "images": {       
+    "images": {
         "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
-        "xxxx":"xxxxx",
-        "xxx/xxx/xx:tag1,tag2,tag3":"xxx/xxx/xx"
-   }                           
+
+        "quay.io/coreos/kube-rbac-proxy:v1.0": "quay.io/ruohe/kube-rbac-proxy",
+
+        "quay.io/coreos/kube-rbac-proxy:v1.0,v2.0": "quay.io/ruohe/kube-rbac-proxy"
+    }
 }

@@ -1,0 +1,19 @@
+auth:
+  quay.io:
+    username: xxx
+    password: xxxxxxxxx
+    insecure: true
+  registry.cn-beijing.aliyuncs.com:
+    username: xxx
+    password: xxxxxxxxx
+  registry.hub.docker.com:
+    username: xxx
+    password: xxxxxxxxxx
+  quay.io/coreos:
+    username: abc
+    password: xxxxxxxxx
+    insecure: true
+images:
+  quay.io/coreos/kube-rbac-proxy: quay.io/ruohe/kube-rbac-proxy
+  quay.io/coreos/kube-rbac-proxy:v1.0: quay.io/ruohe/kube-rbac-proxy
+  quay.io/coreos/kube-rbac-proxy:v1.0,v2.0: quay.io/ruohe/kube-rbac-proxy

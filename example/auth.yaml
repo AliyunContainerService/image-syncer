@@ -1,0 +1,14 @@
+quay.io:
+  username: xxx
+  password: xxxxxxxxx
+  insecure: true
+registry.cn-beijing.aliyuncs.com:
+  username: xxx
+  password: xxxxxxxxx
+registry.hub.docker.com:
+  username: xxx
+  password: xxxxxxxxxx
+quay.io/coreos:
+  username: abc
+  password: xxxxxxxxx
+  insecure: true
