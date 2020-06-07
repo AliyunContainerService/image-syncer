@@ -3,10 +3,11 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Config information of sync client
