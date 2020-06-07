@@ -83,7 +83,7 @@ Authentication file holds all the authentication information for each registry, 
 
 #### Image sync configuration file
 
-Image sync configuration file defines all the image synchronization rules, the following is an exmpale of `images.json`
+Image sync configuration file defines all the image synchronization rules, the following is an example of `images.json`
 
 ```java
 {
@@ -125,8 +125,6 @@ Image sync configuration file defines all the image synchronization rules, the f
     // and environment variable.
 }	
 ```
-
-
 
 ### Parameters
 
