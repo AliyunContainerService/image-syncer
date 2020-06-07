@@ -43,12 +43,12 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
+func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, defaultDestRegistry, defaultDestNamespace)
+	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("Generate confg error: %v", err)
+		return nil, fmt.Errorf("generate confg error: %v", err)
 	}
 
 	return &Client{

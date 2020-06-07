@@ -1,0 +1,5 @@
+quay.io/coreos/kube-rbac-proxy: quay.io/ruohe/kube-rbac-proxy
+
+quay.io/coreos/kube-rbac-proxy:v1.0: quay.io/ruohe/kube-rbac-proxy
+
+quay.io/coreos/kube-rbac-proxy:v1.0,v2.0: quay.io/ruohe/kube-rbac-proxy
