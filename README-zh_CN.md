@@ -60,7 +60,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
 ### 配置文件
 
-配置文件支持JSON和YAML两种格式，详细的配置文件示例可在目录 [example](./example) 下找到，旧版本的配置文件格式（auth 和 images 字段放在一起的版本，通过 --config 参数指定）也是兼容的，目录下 `config.json` 为示例。
+在 v1.2.0 版本之后，image-syncer 的配置文件支持JSON和YAML两种格式，并且支持将原config文件替换为一个认证信息文件和一个镜像同步文件。详细的配置文件示例可在目录 [example](./example) 下找到，旧版本的配置文件格式（auth 和 images 字段放在一起的版本，通过 --config 参数指定）也是兼容的，目录下 `config.json` 为示例。
 
 #### 认证信息
 

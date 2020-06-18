@@ -48,7 +48,7 @@ make
 
 ### Configure Files
 
-Support both YAML and JSON format, a full list of examples can be found under [example](./example), meanwhile the older version of configuration file is still supported via --config flag.
+After v1.2.0, image-syncer supports both YAML and JSON format, and origin config file can be split into "auth" and "images" file. A full list of examples can be found under [example](./example), meanwhile the older version of configuration file is still supported via --config flag.
 
 #### Authentication file
 
