@@ -91,7 +91,12 @@ func (t *Task) Run() error {
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
 
 			t.Infof("handle manifest OS:%s Architecture:%s ", manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-			subManifestByte, manifestType, err = t.source.source.GetManifest(t.source.ctx, &manifestDescriptorElem.Digest)
+
+			subManifestByte, _, err = t.source.source.GetManifest(t.source.ctx, &manifestDescriptorElem.Digest)
+			if err != nil {
+				return t.Errorf("Get manifest %v of OS:%s Architecture:%s for manifest list error: %v", manifestDescriptorElem.Digest, manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture, err)
+			}
+
 			if err := t.destination.PushManifest(subManifestByte); err != nil {
 				return t.Errorf("Put manifest to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
 			}
