@@ -3,7 +3,9 @@ package sync
 import (
 	"fmt"
 
-	"github.com/containers/image/pkg/blobinfocache/none"
+	"github.com/containers/image/v5/manifest"
+
+	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,6 +37,7 @@ func NewTask(source *ImageSource, destination *ImageDestination, logger *logrus.
 
 // Run is the main function of a sync task
 func (t *Task) Run() error {
+
 	// get manifest from source
 	manifestByte, manifestType, err := t.source.GetManifest()
 	if err != nil {
@@ -72,15 +75,50 @@ func (t *Task) Run() error {
 			// print the log of ignored blob
 			t.Infof("Blob %s(%v) has been pushed to %s, will not be pulled", b.Digest, b.Size, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
 		}
+
 	}
 
-	// push manifest to destination
-	if err := t.destination.PushManifest(manifestByte); err != nil {
-		return t.Errorf("Put manifest to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+	//Push manifest list
+	if manifestType == manifest.DockerV2ListMediaType {
+		manifestSchemaListInfo, err := manifest.Schema2ListFromManifest(manifestByte)
+		if err != nil {
+			return err
+		}
+
+		var subManifestByte []byte
+
+		// push manifest to destination
+		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
+
+			t.Infof("handle manifest OS:%s Architecture:%s ", manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
+			subManifestByte, manifestType, err = t.source.source.GetManifest(t.source.ctx, &manifestDescriptorElem.Digest)
+			if err := t.destination.PushManifest(subManifestByte); err != nil {
+				return t.Errorf("Put manifest to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+			}
+
+			t.Infof("Put manifest to %s/%s:%s os:%s arch:%s", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
+
+		}
+
+		// push manifest list to destination
+		if err := t.destination.PushManifest(manifestByte); err != nil {
+			return t.Errorf("Put manifestList to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+		}
+
+		t.Infof("Put manifestList to %s/%s:%s", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+
+	} else {
+
+		// push manifest to destination
+		if err := t.destination.PushManifest(manifestByte); err != nil {
+			return t.Errorf("Put manifest to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+		}
+
+		t.Infof("Put manifest to %s/%s:%s", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 	}
-	t.Infof("Put manifest to %s/%s:%s", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 
 	t.Infof("Synchronization successfully from %s/%s:%s to %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+
 	return nil
 }
 
