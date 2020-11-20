@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
-	"github.com/containers/image/docker"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/types"
 )
 
 // ImageDestination is a reference of a remote image we will push to
@@ -78,7 +78,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 // PushManifest push a manifest file to destinate image
 func (i *ImageDestination) PushManifest(manifestByte []byte) error {
-	return i.destination.PutManifest(i.ctx, manifestByte)
+	return i.destination.PutManifest(i.ctx, manifestByte, nil)
 }
 
 // PutABlob push a blob to destinate image

@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
-	"github.com/containers/image/docker"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/types"
 )
 
 // ImageSource is a reference to a remote image need to be pulled.
@@ -94,29 +94,23 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 		return nil, fmt.Errorf("cannot get blobs without specfied a tag")
 	}
 
-	manifestInfo, digests, err := ManifestHandler(manifestByte, manifestType)
+	manifestInfoSlice, err := ManifestHandler(manifestByte, manifestType, i)
 	if err != nil {
 		return nil, err
 	}
 
-	if digests != nil {
-		// TODO: manifest list support
-		return nil, fmt.Errorf("manifest list is not supported right now")
-	}
-
-	// get a manifest
-
-	blobInfos := manifestInfo.LayerInfos()
+	// get a Blobs
 	srcBlobs := []types.BlobInfo{}
-
-	for _, l := range blobInfos {
-		srcBlobs = append(srcBlobs, l.BlobInfo)
-	}
-
-	// append config blob info
-	configBlob := manifestInfo.ConfigInfo()
-	if configBlob.Digest != "" {
-		srcBlobs = append(srcBlobs, configBlob)
+	for _, manifestInfo := range manifestInfoSlice {
+		blobInfos := manifestInfo.LayerInfos()
+		for _, l := range blobInfos {
+			srcBlobs = append(srcBlobs, l.BlobInfo)
+		}
+		// append config blob info
+		configBlob := manifestInfo.ConfigInfo()
+		if configBlob.Digest != "" {
+			srcBlobs = append(srcBlobs, configBlob)
+		}
 	}
 
 	return srcBlobs, nil
