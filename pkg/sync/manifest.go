@@ -38,9 +38,13 @@ func ManifestHandler(m []byte, t string, i *ImageSource) ([]manifest.Manifest, e
 			if err != nil {
 				return nil, err
 			}
-			platformSpecManifest, err := ManifestHandler(manifestByte, manifestType, i)
-			manifestInfoSlice = append(manifestInfoSlice, platformSpecManifest...)
 
+			platformSpecManifest, err := ManifestHandler(manifestByte, manifestType, i)
+			if err != nil {
+				return nil, err
+			}
+
+			manifestInfoSlice = append(manifestInfoSlice, platformSpecManifest...)
 		}
 		return manifestInfoSlice, nil
 	}
