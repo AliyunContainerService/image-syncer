@@ -44,7 +44,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 
 	var sysctx *types.SystemContext
 	if insecure {
-		// destinatoin registry is http service
+		// destination registry is http service
 		sysctx = &types.SystemContext{
 			DockerInsecureSkipTLSVerify: types.OptionalBoolTrue,
 		}
@@ -83,7 +83,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 // GetManifest get manifest file from source image
 func (i *ImageSource) GetManifest() ([]byte, string, error) {
 	if i.source == nil {
-		return nil, "", fmt.Errorf("cannot get manifest file without specfied a tag")
+		return nil, "", fmt.Errorf("cannot get manifest file without specified a tag")
 	}
 	return i.source.GetManifest(i.ctx, nil)
 }
@@ -91,7 +91,7 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 // GetBlobInfos get blobs from source image.
 func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]types.BlobInfo, error) {
 	if i.source == nil {
-		return nil, fmt.Errorf("cannot get blobs without specfied a tag")
+		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}
 
 	manifestInfoSlice, err := ManifestHandler(manifestByte, manifestType, i)

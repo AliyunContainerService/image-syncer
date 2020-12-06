@@ -73,7 +73,7 @@ func (t *Task) Run() error {
 			t.Infof("Put blob %s(%v) to %s/%s:%s success", b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 		} else {
 			// print the log of ignored blob
-			t.Infof("Blob %s(%v) has been pushed to %s, will not be pulled", b.Digest, b.Size, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
+			t.Infof("Blob %s(%v) has been pushed to %s, will not be pushed", b.Digest, b.Size, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
 		}
 
 	}
