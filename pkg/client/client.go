@@ -48,7 +48,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, 
 
 	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("generate confg error: %v", err)
+		return nil, fmt.Errorf("generate config error: %v", err)
 	}
 
 	return &Client{
@@ -73,7 +73,7 @@ func (c *Client) Run() {
 
 	//var finishChan = make(chan struct{}, c.routineNum)
 
-	// opem num of goroutines and wait c for close
+	// open num of goroutines and wait c for close
 	openRoutinesGenTaskAndWaitForFinish := func() {
 		wg := sync2.WaitGroup{}
 		for i := 0; i < c.routineNum; i++ {
