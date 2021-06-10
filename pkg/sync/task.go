@@ -3,6 +3,7 @@ package sync
 import (
 	"fmt"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/manifest"
 
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
@@ -86,9 +87,17 @@ func (t *Task) Run() error {
 		}
 
 		var subManifestByte []byte
+		nm := make([]manifest.Schema2ManifestDescriptor, 0)
 
 		// push manifest to destination
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
+			// select os arch as configed
+			if !tools.OsSelect(manifestDescriptorElem.Platform.OS, t.source.osSelector) || !tools.ArchSelect(manifestDescriptorElem.Platform.Architecture, t.source.archSelector) {
+				t.Infof("skip manifest OS:%s Architecture:%s ", manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
+				continue
+			}
+
+			nm = append(nm, manifestDescriptorElem)
 
 			t.Infof("handle manifest OS:%s Architecture:%s ", manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
 
@@ -102,9 +111,13 @@ func (t *Task) Run() error {
 			}
 
 			t.Infof("Put manifest to %s/%s:%s os:%s arch:%s", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-
 		}
 
+		// update by selected manifest
+		if len(nm) < len(manifestSchemaListInfo.Manifests) {
+			manifestSchemaListInfo.Manifests = nm
+			manifestByte, _ = manifestSchemaListInfo.Serialize()
+		}
 		// push manifest list to destination
 		if err := t.destination.PushManifest(manifestByte); err != nil {
 			return t.Errorf("Put manifestList to %s/%s:%s error: %v", t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)

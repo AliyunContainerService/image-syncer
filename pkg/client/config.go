@@ -32,7 +32,7 @@ type Auth struct {
 	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
-// NewSyncConfig creates a Config struct
+//  NewSyncConfig creates a Config struct
 // configFile
 func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {

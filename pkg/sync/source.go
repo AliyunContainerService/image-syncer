@@ -21,12 +21,16 @@ type ImageSource struct {
 	registry   string
 	repository string
 	tag        string
+
+	// os & arch selector
+	osSelector   []string
+	archSelector []string
 }
 
 // NewImageSource generates a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
-func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
+func NewImageSource(registry, repository, tag, username, password string, insecure bool, osSelector, archSelector []string) (*ImageSource, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
@@ -70,13 +74,15 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		sourceRef:  srcRef,
-		source:     rawSource,
-		ctx:        ctx,
-		sysctx:     sysctx,
-		registry:   registry,
-		repository: repository,
-		tag:        tag,
+		sourceRef:    srcRef,
+		source:       rawSource,
+		ctx:          ctx,
+		sysctx:       sysctx,
+		registry:     registry,
+		repository:   repository,
+		tag:          tag,
+		osSelector:   osSelector,
+		archSelector: archSelector,
 	}, nil
 }
 
@@ -118,7 +124,7 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 
 // GetABlob gets a blob from remote image
 func (i *ImageSource) GetABlob(blobInfo types.BlobInfo) (io.ReadCloser, int64, error) {
-	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, Size: -1}, NoCache)
+	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, URLs: blobInfo.URLs, Size: -1}, NoCache)
 }
 
 // Close an ImageSource
