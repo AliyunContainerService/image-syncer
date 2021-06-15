@@ -3,7 +3,6 @@ package sync
 import (
 	"fmt"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/manifest"
 
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
@@ -92,7 +91,7 @@ func (t *Task) Run() error {
 		// push manifest to destination
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
 			// select os arch as configed
-			if !tools.OsSelect(manifestDescriptorElem.Platform.OS, t.source.osSelector) || !tools.ArchSelect(manifestDescriptorElem.Platform.Architecture, t.source.archSelector) {
+			if t.source.platformMatcher != nil && t.source.platformMatcher.Match(t.source.registry, t.source.repository, t.source.tag, &manifestDescriptorElem.Platform) {
 				t.Infof("skip manifest OS:%s Architecture:%s ", manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
 				continue
 			}

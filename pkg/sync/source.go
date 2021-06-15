@@ -22,15 +22,14 @@ type ImageSource struct {
 	repository string
 	tag        string
 
-	// os & arch selector
-	osSelector   []string
-	archSelector []string
+	// platformMatcher matcher
+	platformMatcher *tools.Platform
 }
 
 // NewImageSource generates a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
-func NewImageSource(registry, repository, tag, username, password string, insecure bool, osSelector, archSelector []string) (*ImageSource, error) {
+func NewImageSource(registry, repository, tag, username, password string, insecure bool, platform *tools.Platform) (*ImageSource, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
@@ -74,15 +73,14 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		sourceRef:    srcRef,
-		source:       rawSource,
-		ctx:          ctx,
-		sysctx:       sysctx,
-		registry:     registry,
-		repository:   repository,
-		tag:          tag,
-		osSelector:   osSelector,
-		archSelector: archSelector,
+		sourceRef:       srcRef,
+		source:          rawSource,
+		ctx:             ctx,
+		sysctx:          sysctx,
+		registry:        registry,
+		repository:      repository,
+		tag:             tag,
+		platformMatcher: platform,
 	}, nil
 }
 

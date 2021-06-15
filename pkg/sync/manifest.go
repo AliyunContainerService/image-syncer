@@ -3,7 +3,6 @@ package sync
 import (
 	"fmt"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/manifest"
 )
 
@@ -35,7 +34,7 @@ func ManifestHandler(m []byte, t string, i *ImageSource) ([]manifest.Manifest, e
 
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
 			// select os arch as configed
-			if !tools.OsSelect(manifestDescriptorElem.Platform.OS, i.osSelector) || !tools.ArchSelect(manifestDescriptorElem.Platform.Architecture, i.archSelector) {
+			if i.platformMatcher != nil && i.platformMatcher.Match(i.registry, i.repository, i.tag, &manifestDescriptorElem.Platform) {
 				continue
 			}
 

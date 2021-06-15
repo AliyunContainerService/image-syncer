@@ -30,10 +30,6 @@ type Client struct {
 	retries    int
 	logger     *logrus.Logger
 
-	// selector
-	osSelector   []string
-	archSelector []string
-
 	// mutex
 	taskListChan               chan int
 	urlPairListChan            chan int
@@ -175,23 +171,25 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("source url should not be empty")
 	}
 
-	var osSelector []string = c.osSelector
-	var archSelector []string = c.archSelector
+	var platform *tools.Platform = &c.config.Platform
 
 	osArchSuffix := ""
-	// parse optional os/arch selector from tag , e.g foobar:1.2@osarch:os=linux,windows&arch=arm64,amd64
-	if osarch := strings.Split(source, "@osarch:"); len(osarch) > 1 {
-		m, _ := url.ParseQuery(osarch[1])
+	// parse optional os/arch selector from tag , e.g foobar:1.2@platform:os=linux,windows:1912&arch=arm:v7,amd64
+	if pstr := strings.Split(source, PLATFORM_TAG); len(pstr) > 1 {
+		// generate a new platform matcher for this source
+		np := c.config.Platform
+		m, _ := url.ParseQuery(pstr[1])
 
 		// use repo specified os arch
 		if v, ok := m["os"]; ok {
-			osSelector = strings.Split(v[0], ",")
+			np.OsList = strings.Split(v[0], ",")
 		}
 		if v, ok := m["arch"]; ok {
-			archSelector = strings.Split(v[0], ",")
+			np.ArchList = strings.Split(v[0], ",")
 		}
-		source = osarch[0]
-		osArchSuffix = "@osarch:" + osarch[1]
+		platform = &np
+		source = pstr[0]
+		osArchSuffix = PLATFORM_TAG + pstr[1]
 	}
 
 	sourceURL, err := tools.NewRepoURL(source)
@@ -238,13 +236,13 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 
 	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), auth.Username, auth.Password, auth.Insecure, osSelector, archSelector)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), auth.Username, auth.Password, auth.Insecure, platform)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}
 	} else {
 		c.logger.Infof("Cannot find auth information for %v, pull actions will be anonymous", sourceURL.GetURL())
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), "", "", false, osSelector, archSelector)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), "", "", false, platform)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}

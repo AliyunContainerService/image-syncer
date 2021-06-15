@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strings"
 
-	"github.com/containers/image/v5/manifest"
+	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,7 +20,7 @@ type Config struct {
 	ImageList map[string]string `json:"images" yaml:"images"`
 
 	// global platform selector
-	Platform Platform `json:"platform" yaml:"platform"`
+	Platform tools.Platform `json:"platform" yaml:"platform"`
 
 	// If the destinate registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry
@@ -37,23 +36,9 @@ type Auth struct {
 	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
-// Platform selector of sync client
-type Platform struct {
-	// default os
-	Os []string `json:"os" yaml:"os"`
-	// default arch
-	Arch []string `json:"arch" yaml:"arch"`
-
-	// set include or exclude filters for source image, when both are present, exclude filters take precedence
-	// filter string use unix glob syntax
-	SourceFilter struct {
-		// include filters
-		Include []string `json:"include" yaml:"include"`
-
-		// exclude filters
-		Exclude []string `json:"exclude" yaml:"exclude"`
-	} `json:"source" yaml:"source"`
-}
+const (
+	PLATFORM_TAG = "@platform:"
+)
 
 //  NewSyncConfig creates a Config struct
 // configFile
@@ -86,6 +71,23 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, platformFilePath, de
 		if len(platformFilePath) != 0 {
 			if err := openAndDecode(platformFilePath, &config.Platform); err != nil {
 				return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
+			}
+
+			var p *tools.Platform = &config.Platform
+			p.Source.IsExclude = len(p.Source.Exclude) != 0
+			filters := p.Source.Exclude
+			if len(p.Source.Include) != 0 {
+				filters = p.Source.Include
+			}
+
+			p.Source.Filters = make([]tools.Filter, 0)
+			for _, v := range filters {
+				if url, err := tools.NewRepoURL(v); err != nil {
+					return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
+				} else {
+					p.Source.Filters = append(p.Source.Filters,
+						tools.Filter{Registry: url.GetRegistry(), Repository: url.GetRepoWithNamespace(), Tag: url.GetTag()})
+				}
 			}
 		}
 	}
@@ -146,56 +148,7 @@ func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
 }
 
-// Match platform selector according to the source image and  its os and arch
-func (c *Config) MatchPlatform(source string, platform manifest.Schema2PlatformSpec) (bool, error) {
-	doSelect := true
-	if len(c.Platform.SourceFilter.Exclude) != 0 {
-		for _, p := range c.Platform.SourceFilter.Exclude {
-			if matched, err := path.Match(p, source); err != nil {
-				return false, err
-			} else if matched {
-				doSelect = false
-				break
-			}
-		}
-
-	} else if len(c.Platform.SourceFilter.Include) != 0 {
-		doSelect = false
-		for _, p := range c.Platform.SourceFilter.Include {
-			if matched, err := path.Match(p, source); err != nil {
-				return false, err
-			} else if matched {
-				doSelect = true
-				break
-			}
-		}
-	}
-
-	if doSelect {
-		osMatched := true
-		archMatched := true
-		if len(c.Platform.Os) != 0 {
-			osMatched = false
-			for _, o := range c.Platform.Os {
-				// match os:osversion
-				if o == os {
-					osMatched = true
-				}
-			}
-		}
-
-		if len(c.Platform.Arch) != 0 {
-			archMatched = false
-			for _, a := range c.Platform.Arch {
-				// match arch:variant
-				if a == arch {
-					archMatched = true
-				}
-			}
-		}
-
-		return osMatched && archMatched, nil
-	}
-
-	return true, nil
+// GetPlatform gets the Platform in Config
+func (c *Config) GetPlatform() *tools.Platform {
+	return &c.Platform
 }

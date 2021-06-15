@@ -39,7 +39,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file path. This flag is deprecated and will be removed in the future. Please use --auth and --images instead.")
 	RootCmd.PersistentFlags().StringVar(&authFile, "auth", "", "auth file path. This flag need to be pair used with --images.")
 	RootCmd.PersistentFlags().StringVar(&imageFile, "images", "", "images file path. This flag need to be pair used with --auth")
-	RootCmd.PersistentFlags().StringVar(&platformFile, "platform", "", "platform file path. This flag need to be pair used with --platform")
+	RootCmd.PersistentFlags().StringVar(&platformFile, "platform", "", "platform file path. This flag is optional")
 	RootCmd.PersistentFlags().StringVar(&logPath, "log", "", "log file path (default in os.Stderr)")
 	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
 		"default destinate registry url when destinate registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
