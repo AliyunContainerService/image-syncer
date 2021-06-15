@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strings"
 
+	"github.com/containers/image/v5/manifest"
 	"gopkg.in/yaml.v2"
 )
 
@@ -17,6 +19,9 @@ type Config struct {
 
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
+
+	// global platform selector
+	Platform Platform `json:"platform" yaml:"platform"`
 
 	// If the destinate registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry
@@ -32,9 +37,27 @@ type Auth struct {
 	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
+// Platform selector of sync client
+type Platform struct {
+	// default os
+	Os []string `json:"os" yaml:"os"`
+	// default arch
+	Arch []string `json:"arch" yaml:"arch"`
+
+	// set include or exclude filters for source image, when both are present, exclude filters take precedence
+	// filter string use unix glob syntax
+	SourceFilter struct {
+		// include filters
+		Include []string `json:"include" yaml:"include"`
+
+		// exclude filters
+		Exclude []string `json:"exclude" yaml:"exclude"`
+	} `json:"source" yaml:"source"`
+}
+
 //  NewSyncConfig creates a Config struct
 // configFile
-func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
+func NewSyncConfig(configFile, authFilePath, imageFilePath, platformFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
 	}
@@ -58,6 +81,12 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry,
 
 		if err := openAndDecode(imageFilePath, &config.ImageList); err != nil {
 			return nil, fmt.Errorf("decode image file %v error: %v", imageFilePath, err)
+		}
+
+		if len(platformFilePath) != 0 {
+			if err := openAndDecode(platformFilePath, &config.Platform); err != nil {
+				return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
+			}
 		}
 	}
 
@@ -115,4 +144,58 @@ func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
 // GetImageList gets the ImageList map in Config
 func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
+}
+
+// Match platform selector according to the source image and  its os and arch
+func (c *Config) MatchPlatform(source string, platform manifest.Schema2PlatformSpec) (bool, error) {
+	doSelect := true
+	if len(c.Platform.SourceFilter.Exclude) != 0 {
+		for _, p := range c.Platform.SourceFilter.Exclude {
+			if matched, err := path.Match(p, source); err != nil {
+				return false, err
+			} else if matched {
+				doSelect = false
+				break
+			}
+		}
+
+	} else if len(c.Platform.SourceFilter.Include) != 0 {
+		doSelect = false
+		for _, p := range c.Platform.SourceFilter.Include {
+			if matched, err := path.Match(p, source); err != nil {
+				return false, err
+			} else if matched {
+				doSelect = true
+				break
+			}
+		}
+	}
+
+	if doSelect {
+		osMatched := true
+		archMatched := true
+		if len(c.Platform.Os) != 0 {
+			osMatched = false
+			for _, o := range c.Platform.Os {
+				// match os:osversion
+				if o == os {
+					osMatched = true
+				}
+			}
+		}
+
+		if len(c.Platform.Arch) != 0 {
+			archMatched = false
+			for _, a := range c.Platform.Arch {
+				// match arch:variant
+				if a == arch {
+					archMatched = true
+				}
+			}
+		}
+
+		return osMatched && archMatched, nil
+	}
+
+	return true, nil
 }

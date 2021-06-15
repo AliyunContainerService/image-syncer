@@ -48,10 +48,10 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string, osSelector []string, archSelector []string) (*Client, error) {
+func NewSyncClient(configFile, authFile, imageFile, platformFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
+	config, err := NewSyncConfig(configFile, authFile, imageFile, platformFile, defaultDestRegistry, defaultDestNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -65,8 +65,6 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, 
 		routineNum:                 routineNum,
 		retries:                    retries,
 		logger:                     logger,
-		osSelector:                 osSelector,
-		archSelector:               archSelector,
 		taskListChan:               make(chan int, 1),
 		urlPairListChan:            make(chan int, 1),
 		failedTaskListChan:         make(chan int, 1),
