@@ -3,6 +3,7 @@ package client
 import (
 	"container/list"
 	"fmt"
+	"net/url"
 	"strings"
 	sync2 "sync"
 
@@ -43,10 +44,10 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
+func NewSyncClient(configFile, authFile, imageFile, platformFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
+	config, err := NewSyncConfig(configFile, authFile, imageFile, platformFile, defaultDestRegistry, defaultDestNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -170,6 +171,27 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("source url should not be empty")
 	}
 
+	var platform *tools.Platform = &c.config.Platform
+
+	osArchSuffix := ""
+	// parse optional os/arch selector from tag , e.g foobar:1.2@platform:os=linux,windows:1912&arch=arm:v7,amd64
+	if pstr := strings.Split(source, PLATFORM_TAG); len(pstr) > 1 {
+		// generate a new platform matcher for this source
+		np := c.config.Platform
+		m, _ := url.ParseQuery(pstr[1])
+
+		// use repo specified os arch
+		if v, ok := m["os"]; ok {
+			np.OsList = strings.Split(v[0], ",")
+		}
+		if v, ok := m["arch"]; ok {
+			np.ArchList = strings.Split(v[0], ",")
+		}
+		platform = &np
+		source = pstr[0]
+		osArchSuffix = PLATFORM_TAG + pstr[1]
+	}
+
 	sourceURL, err := tools.NewRepoURL(source)
 	if err != nil {
 		return nil, fmt.Errorf("url %s format error: %v", source, err)
@@ -189,8 +211,9 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("url %s format error: %v", destination, err)
 	}
 
-	// multi-tags config
 	tags := sourceURL.GetTag()
+
+	// multi-tags config
 	if moreTag := strings.Split(tags, ","); len(moreTag) > 1 {
 		if destURL.GetTag() != "" && destURL.GetTag() != sourceURL.GetTag() {
 			return nil, fmt.Errorf("multi-tags source should not correspond to a destination with tag: %s:%s", sourceURL.GetURL(), destURL.GetURL())
@@ -200,8 +223,8 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		var urlPairs = []*URLPair{}
 		for _, t := range moreTag {
 			urlPairs = append(urlPairs, &URLPair{
-				source:      sourceURL.GetURLWithoutTag() + ":" + t,
-				destination: destURL.GetURLWithoutTag() + ":" + t,
+				source:      sourceURL.GetURLWithoutTag() + ":" + t + osArchSuffix,
+				destination: destURL.GetURLWithoutTag() + ":" + t + osArchSuffix,
 			})
 		}
 
@@ -213,13 +236,13 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 
 	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), auth.Username, auth.Password, auth.Insecure)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), auth.Username, auth.Password, auth.Insecure, platform)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}
 	} else {
 		c.logger.Infof("Cannot find auth information for %v, pull actions will be anonymous", sourceURL.GetURL())
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), "", "", false)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), "", "", false, platform)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}
@@ -242,8 +265,8 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		var urlPairs = []*URLPair{}
 		for _, tag := range tags {
 			urlPairs = append(urlPairs, &URLPair{
-				source:      sourceURL.GetURL() + ":" + tag,
-				destination: destURL.GetURL() + ":" + tag,
+				source:      sourceURL.GetURL() + ":" + tag + osArchSuffix,
+				destination: destURL.GetURL() + ":" + tag + osArchSuffix,
 			})
 		}
 		return urlPairs, nil

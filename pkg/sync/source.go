@@ -7,6 +7,7 @@ import (
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 )
 
@@ -21,12 +22,15 @@ type ImageSource struct {
 	registry   string
 	repository string
 	tag        string
+
+	// platformMatcher matcher
+	platformMatcher *tools.Platform
 }
 
 // NewImageSource generates a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
-func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
+func NewImageSource(registry, repository, tag, username, password string, insecure bool, platform *tools.Platform) (*ImageSource, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
@@ -70,13 +74,14 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		sourceRef:  srcRef,
-		source:     rawSource,
-		ctx:        ctx,
-		sysctx:     sysctx,
-		registry:   registry,
-		repository: repository,
-		tag:        tag,
+		sourceRef:       srcRef,
+		source:          rawSource,
+		ctx:             ctx,
+		sysctx:          sysctx,
+		registry:        registry,
+		repository:      repository,
+		tag:             tag,
+		platformMatcher: platform,
 	}, nil
 }
 
@@ -89,16 +94,10 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 }
 
 // GetBlobInfos get blobs from source image.
-func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]types.BlobInfo, error) {
+func (i *ImageSource) GetBlobInfos(manifestInfoSlice []manifest.Manifest) ([]types.BlobInfo, error) {
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}
-
-	manifestInfoSlice, err := ManifestHandler(manifestByte, manifestType, i)
-	if err != nil {
-		return nil, err
-	}
-
 	// get a Blobs
 	srcBlobs := []types.BlobInfo{}
 	for _, manifestInfo := range manifestInfoSlice {
@@ -118,7 +117,7 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 
 // GetABlob gets a blob from remote image
 func (i *ImageSource) GetABlob(blobInfo types.BlobInfo) (io.ReadCloser, int64, error) {
-	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, Size: -1}, NoCache)
+	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, URLs: blobInfo.URLs, Size: -1}, NoCache)
 }
 
 // Close an ImageSource

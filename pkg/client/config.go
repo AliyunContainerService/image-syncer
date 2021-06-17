@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"gopkg.in/yaml.v2"
 )
 
@@ -17,6 +18,9 @@ type Config struct {
 
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
+
+	// global platform selector
+	Platform tools.Platform `json:"platform" yaml:"platform"`
 
 	// If the destinate registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry
@@ -32,9 +36,13 @@ type Auth struct {
 	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
-// NewSyncConfig creates a Config struct
+const (
+	PLATFORM_TAG = "@platform:"
+)
+
+//  NewSyncConfig creates a Config struct
 // configFile
-func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
+func NewSyncConfig(configFile, authFilePath, imageFilePath, platformFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
 	}
@@ -58,6 +66,30 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry,
 
 		if err := openAndDecode(imageFilePath, &config.ImageList); err != nil {
 			return nil, fmt.Errorf("decode image file %v error: %v", imageFilePath, err)
+		}
+
+		if len(platformFilePath) != 0 {
+			if err := openAndDecode(platformFilePath, &config.Platform); err != nil {
+				return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
+			}
+
+			var p *tools.Platform = &config.Platform
+			p.Source.IsExclude = true
+			filters := p.Source.Exclude
+			if len(p.Source.Include) != 0 && len(filters) == 0 {
+				filters = p.Source.Include
+				p.Source.IsExclude = false
+			}
+
+			p.Source.Filters = make([]tools.RepoFilter, 0)
+			for _, v := range filters {
+				if url, err := tools.NewRepoURL(v); err != nil {
+					return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
+				} else {
+					p.Source.Filters = append(p.Source.Filters,
+						tools.RepoFilter{Registry: url.GetRegistry(), Repository: url.GetRepoWithNamespace(), Tag: url.GetTag()})
+				}
+			}
 		}
 	}
 
@@ -115,4 +147,9 @@ func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
 // GetImageList gets the ImageList map in Config
 func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
+}
+
+// GetPlatform gets the Platform in Config
+func (c *Config) GetPlatform() *tools.Platform {
+	return &c.Platform
 }
