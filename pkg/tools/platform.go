@@ -58,31 +58,31 @@ func (p *Platform) Match(registry string, repo string, tag string, platform *man
 		}
 	}
 
-	if doSelect {
-		osMatched := true
-		archMatched := true
-		if len(p.OsList) != 0 {
-			osMatched = false
-			for _, o := range p.OsList {
-				// match os:osversion
-				if colonMatch(o, platform.OS, platform.OSVersion) {
-					osMatched = true
-				}
-			}
-		}
-
-		if len(p.ArchList) != 0 {
-			archMatched = false
-			for _, a := range p.ArchList {
-				// match architecture:variant
-				if colonMatch(a, platform.Architecture, platform.Variant) {
-					archMatched = true
-				}
-			}
-		}
-
-		return osMatched && archMatched
+	if !doSelect {
+		return true
 	}
 
-	return true
+	osMatched := true
+	archMatched := true
+	if len(p.OsList) != 0 {
+		osMatched = false
+		for _, o := range p.OsList {
+			// match os:osversion
+			if colonMatch(o, platform.OS, platform.OSVersion) {
+				osMatched = true
+			}
+		}
+	}
+
+	if len(p.ArchList) != 0 {
+		archMatched = false
+		for _, a := range p.ArchList {
+			// match architecture:variant
+			if colonMatch(a, platform.Architecture, platform.Variant) {
+				archMatched = true
+			}
+		}
+	}
+
+	return osMatched && archMatched
 }
