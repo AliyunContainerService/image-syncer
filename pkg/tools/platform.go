@@ -51,7 +51,7 @@ func (p *Platform) Match(registry string, repo string, tag string, platform *man
 
 	for _, p := range p.Source.Filters {
 		if (p.Registry == "" || p.Registry == registry) &&
-			(p.Repository == "" || p.Repository == repo) &&
+			(p.Repository == "" || strings.HasPrefix(repo, p.Repository)) &&
 			(p.Tag == "" || p.Tag == tag) {
 			doSelect = !doSelect
 			break

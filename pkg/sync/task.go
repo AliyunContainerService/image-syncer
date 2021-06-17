@@ -84,13 +84,12 @@ func (t *Task) Run() error {
 
 	//Push manifest list
 	if manifestType == manifest.DockerV2ListMediaType {
-		manifestSchemaListInfo := thisManifestInfo.(*manifest.Schema2List)
-		if manifestSchemaListInfo != nil {
-			// new manifest after platform selection
-			manifestByte, err = manifestSchemaListInfo.Serialize()
-			println(string(manifestByte))
-		} else {
+		var manifestSchemaListInfo *manifest.Schema2List
+		if thisManifestInfo == nil {
 			manifestSchemaListInfo, err = manifest.Schema2ListFromManifest(manifestByte)
+		} else {
+			manifestSchemaListInfo = thisManifestInfo.(*manifest.Schema2List)
+			manifestByte, err = manifestSchemaListInfo.Serialize()
 		}
 
 		if err != nil {
