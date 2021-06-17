@@ -65,9 +65,10 @@ func (t *Task) Run() error {
 			// pull a blob from source
 			blob, size, err := t.source.GetABlob(b)
 			if err != nil {
-				return t.Errorf("Get blob %s(%v) from %s/%s:%s failed: tools.PlatformReaderCloser{%v", b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+				return t.Errorf("Get blob %s(%v) from %s/%s:%s failed: %v", b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
 			}
 			t.Infof("Get a blob %s(%v) from %s/%s:%s success", b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
+
 			b.Size = size
 			// push a blob to destination
 			if err := t.destination.PutABlob(blob, b); err != nil {
@@ -78,6 +79,7 @@ func (t *Task) Run() error {
 			// print the log of ignored blob
 			t.Infof("Blob %s(%v) has been pushed to %s, will not be pushed", b.Digest, b.Size, t.destination.GetRegistry()+"/"+t.destination.GetRepository())
 		}
+
 	}
 
 	//Push manifest list
