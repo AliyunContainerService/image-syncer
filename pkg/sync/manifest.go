@@ -83,9 +83,9 @@ func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema
 		if len(nm) != len(manifestSchemaListInfo.Manifests) {
 			manifestSchemaListInfo.Manifests = nm
 			return manifestInfoSlice, manifestSchemaListInfo, nil
-		} else {
-			return manifestInfoSlice, nil, nil
 		}
+
+		return manifestInfoSlice, nil, nil
 	}
 
 	return nil, nil, fmt.Errorf("unsupported manifest type: %v", t)

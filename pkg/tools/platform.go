@@ -6,6 +6,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 )
 
+// Repository filter, empty field means match any, 'Repository' format: namespace/repo
 type RepoFilter struct {
 	Registry   string
 	Repository string
