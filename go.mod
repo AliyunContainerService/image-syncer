@@ -1,6 +1,6 @@
 module github.com/AliyunContainerService/image-syncer
 
-go 1.13
+go 1.15
 
 require (
 	github.com/containers/image/v5 v5.7.0
