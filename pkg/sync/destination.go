@@ -52,7 +52,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), interface{}("ImageDestination"), repository)
+	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
