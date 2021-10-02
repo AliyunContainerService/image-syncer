@@ -25,7 +25,5 @@ Type: *bug report*
 ### Environment
 - image-syncer version:
 - OS (e.g. `cat /etc/os-release`):
-- Kernel (e.g. `uname -a`):
-- Kubernetes version:
-- Install tools:
+- Registry version (e.g. `habor`):
 - Others:

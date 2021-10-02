@@ -55,6 +55,7 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry,
 				return nil, fmt.Errorf("decode auth file %v error: %v", authFilePath, err)
 			}
 		}
+		config.AuthList = expandEnv(config.AuthList)
 
 		if err := openAndDecode(imageFilePath, &config.ImageList); err != nil {
 			return nil, fmt.Errorf("decode image file %v error: %v", imageFilePath, err)
@@ -115,4 +116,22 @@ func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
 // GetImageList gets the ImageList map in Config
 func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
+}
+
+func expandEnv(authMap map[string]Auth) map[string]Auth {
+
+	result := make(map[string]Auth)
+
+	for registry, auth := range authMap {
+		pwd := os.ExpandEnv(auth.Password)
+		name := os.ExpandEnv(auth.Username)
+		newAuth := Auth{
+			Username: name,
+			Password: pwd,
+			Insecure: auth.Insecure,
+		}
+		result[registry] = newAuth
+	}
+
+	return result
 }
