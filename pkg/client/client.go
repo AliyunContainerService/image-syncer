@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	sync2 "sync"
+	"time"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
@@ -34,6 +35,8 @@ type Client struct {
 	urlPairListChan            chan int
 	failedTaskListChan         chan int
 	failedTaskGenerateListChan chan int
+
+	afterAgoDuration time.Duration
 }
 
 // URLPair is a pair of source and destination url
@@ -43,7 +46,11 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
+func NewSyncClient(configFile, authFile, imageFile, logFile string,
+	routineNum, retries int,
+	defaultDestRegistry, defaultDestNamespace string,
+	afterAgoDuration time.Duration) (*Client, error) {
+
 	logger := NewFileLogger(logFile)
 
 	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
@@ -64,6 +71,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, 
 		urlPairListChan:            make(chan int, 1),
 		failedTaskListChan:         make(chan int, 1),
 		failedTaskGenerateListChan: make(chan int, 1),
+		afterAgoDuration:           afterAgoDuration,
 	}, nil
 }
 
@@ -86,7 +94,7 @@ func (c *Client) Run() {
 					if empty {
 						break
 					}
-					moreURLPairs, err := c.GenerateSyncTask(urlPair.source, urlPair.destination)
+					moreURLPairs, err := c.GenerateSyncTask(urlPair.source, urlPair.destination, c.afterAgoDuration)
 					if err != nil {
 						c.logger.Errorf("Generate sync task %s to %s error: %v", urlPair.source, urlPair.destination, err)
 						// put to failedTaskGenerateList
@@ -165,7 +173,7 @@ func (c *Client) Run() {
 }
 
 // GenerateSyncTask creates synchronization tasks from source and destination url, return URLPair array if there are more than one tags
-func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair, error) {
+func (c *Client) GenerateSyncTask(source string, destination string, afterAgoDuration time.Duration) ([]*URLPair, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source url should not be empty")
 	}
@@ -197,7 +205,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		}
 
 		// contains more than one tag
-		var urlPairs = []*URLPair{}
+		var urlPairs []*URLPair
 		for _, t := range moreTag {
 			urlPairs = append(urlPairs, &URLPair{
 				source:      sourceURL.GetURLWithoutTag() + ":" + t,
@@ -232,14 +240,14 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		}
 
 		// get all tags of this source repo
-		tags, err := imageSource.GetSourceRepoTags()
+		tags, err := imageSource.GetSourceRepoTags(afterAgoDuration)
 		if err != nil {
 			return nil, fmt.Errorf("get tags failed from %s error: %v", sourceURL.GetURL(), err)
 		}
 		c.logger.Infof("Get tags of %s successfully: %v", sourceURL.GetURL(), tags)
 
 		// generate url pairs for tags
-		var urlPairs = []*URLPair{}
+		var urlPairs []*URLPair
 		for _, tag := range tags {
 			urlPairs = append(urlPairs, &URLPair{
 				source:      sourceURL.GetURL() + ":" + tag,
@@ -249,7 +257,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return urlPairs, nil
 	}
 
-	// if source tag is set but without destinate tag, use the same tag as source
+	// if source tag is set but without destination tag, use the same tag as source
 	destTag := destURL.GetTag()
 	if destTag == "" {
 		destTag = sourceURL.GetTag()

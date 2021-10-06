@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/dockerhelper"
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
-	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
 )
 
@@ -37,7 +38,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		tagWithColon = ":" + tag
 	}
 
-	srcRef, err := docker.ParseReference("//" + registry + "/" + repository + tagWithColon)
+	srcRef, err := dockerhelper.ParseReference("//" + registry + "/" + repository + tagWithColon)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 	}
 
 	// get a Blobs
-	srcBlobs := []types.BlobInfo{}
+	var srcBlobs []types.BlobInfo
 	for _, manifestInfo := range manifestInfoSlice {
 		blobInfos := manifestInfo.LayerInfos()
 		for _, l := range blobInfos {
@@ -142,6 +143,10 @@ func (i *ImageSource) GetTag() string {
 }
 
 // GetSourceRepoTags gets all the tags of a repository which ImageSource belongs to
-func (i *ImageSource) GetSourceRepoTags() ([]string, error) {
-	return docker.GetRepositoryTags(i.ctx, i.sysctx, i.sourceRef)
+func (i *ImageSource) GetSourceRepoTags(afterAgoDuration time.Duration) ([]string, error) {
+	if afterAgoDuration != 0 {
+		return dockerhelper.GetRepositoryTagsAfterDate(i.ctx, i.sysctx, i.sourceRef,
+			time.Now().Add(-afterAgoDuration))
+	}
+	return dockerhelper.GetRepositoryTags(i.ctx, i.sysctx, i.sourceRef)
 }

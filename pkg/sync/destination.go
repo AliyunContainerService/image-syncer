@@ -17,7 +17,7 @@ type ImageDestination struct {
 	ctx            context.Context
 	sysctx         *types.SystemContext
 
-	// destinate image description
+	// destination image description
 	registry   string
 	repository string
 	tag        string
@@ -76,12 +76,12 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	}, nil
 }
 
-// PushManifest push a manifest file to destinate image
+// PushManifest push a manifest file to destination image
 func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 	return i.destination.PutManifest(i.ctx, manifestByte, nil)
 }
 
-// PutABlob push a blob to destinate image
+// PutABlob push a blob to destination image
 func (i *ImageDestination) PutABlob(blob io.ReadCloser, blobInfo types.BlobInfo) error {
 	_, err := i.destination.PutBlob(i.ctx, blob, types.BlobInfo{
 		Digest: blobInfo.Digest,
