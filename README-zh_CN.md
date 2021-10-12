@@ -75,8 +75,8 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
     
     "quay.io": {    // 支持 "registry" 和 "registry/namespace"（v1.0.3之后的版本） 的形式，需要跟下面images中的registry(registry/namespace)对应
                     // images中被匹配到的的url会使用对应账号密码进行镜像同步, 优先匹配 "registry/namespace" 的形式
-        "username": "xxx",               // 用户名，可选
-        "password": "xxxxxxxxx",         // 密码，可选
+        "username": "xxx",               // 用户名，可选，（v1.3.1 之后支持）valuse 使用 "${env}" 或者 "$env" 类型的字符串可以引用环境变量
+        "password": "xxxxxxxxx",         // 密码，可选，（v1.3.1 之后支持）valuse 使用 "${env}" 或者 "$env" 类型的字符串可以引用环境变量
         "insecure": true                 // registry是否是http服务，如果是，insecure 字段需要为true，默认是false，可选，支持这个选项需要image-syncer版本 > v1.0.1
     },
     "registry.cn-beijing.aliyuncs.com": {

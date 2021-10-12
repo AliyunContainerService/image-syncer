@@ -56,7 +56,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), interface{}("ImageSource"), repository)
+	ctx := context.WithValue(context.Background(), ctxKey{"ImageSource"}, repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,

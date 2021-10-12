@@ -62,8 +62,8 @@ Authentication file holds all the authentication information for each registry, 
         
     "quay.io": {        // This "registry" or "registry/namespace" string should be the same as registry or registry/namespace used below in "images" field.  
                             // The format of "registry/namespace" will be more prior matched than "registry"
-        "username": "xxx",             
-        "password": "xxxxxxxxx",
+        "username": "xxx",       // Optional, if the value is a string of "${env}" or "$env", image-syncer will try to find the value in environment variables, after v1.3.1       
+        "password": "xxxxxxxxx", // Optional, if the value is a string of "${env}" or "$env", image-syncer will try to find the value in environment variables, after v1.3.1
         "insecure": true         // "insecure" field needs to be true if this registry is a http service, default value is false, version of image-syncer need to be later than v1.0.1 to support this field
     },
     "registry.cn-beijing.aliyuncs.com": {
