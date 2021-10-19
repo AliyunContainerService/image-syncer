@@ -7,6 +7,7 @@ import (
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 )
 
@@ -89,18 +90,12 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 }
 
 // GetBlobInfos get blobs from source image.
-func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]types.BlobInfo, error) {
+func (i *ImageSource) GetBlobInfos(manifestInfoSlice []manifest.Manifest) ([]types.BlobInfo, error) {
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}
-
-	manifestInfoSlice, err := ManifestHandler(manifestByte, manifestType, i)
-	if err != nil {
-		return nil, err
-	}
-
 	// get a Blobs
-	srcBlobs := []types.BlobInfo{}
+	var srcBlobs []types.BlobInfo
 	for _, manifestInfo := range manifestInfoSlice {
 		blobInfos := manifestInfo.LayerInfos()
 		for _, l := range blobInfos {
@@ -118,7 +113,7 @@ func (i *ImageSource) GetBlobInfos(manifestByte []byte, manifestType string) ([]
 
 // GetABlob gets a blob from remote image
 func (i *ImageSource) GetABlob(blobInfo types.BlobInfo) (io.ReadCloser, int64, error) {
-	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, Size: -1}, NoCache)
+	return i.source.GetBlob(i.ctx, types.BlobInfo{Digest: blobInfo.Digest, URLs: blobInfo.URLs, Size: -1}, NoCache)
 }
 
 // Close an ImageSource

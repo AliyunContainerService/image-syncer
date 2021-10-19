@@ -18,7 +18,12 @@ type Config struct {
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
 
-	// If the destinate registry and namespace is not provided,
+	// only images with selected os can be sync
+	osFilterList []string
+	// only images with selected architecture can be sync
+	archFilterList []string
+
+	// If the destination registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry
 	// and defaultDestNamespace with origin repo name and tag.
 	defaultDestRegistry  string
@@ -33,8 +38,8 @@ type Auth struct {
 }
 
 // NewSyncConfig creates a Config struct
-// configFile
-func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
+func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string,
+	osFilterList, archFilterList []string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
 	}
@@ -64,6 +69,8 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry,
 
 	config.defaultDestNamespace = defaultDestNamespace
 	config.defaultDestRegistry = defaultDestRegistry
+	config.osFilterList = osFilterList
+	config.archFilterList = archFilterList
 
 	return &config, nil
 }

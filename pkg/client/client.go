@@ -43,10 +43,14 @@ type URLPair struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, authFile, imageFile, logFile string, routineNum, retries int, defaultDestRegistry string, defaultDestNamespace string) (*Client, error) {
+func NewSyncClient(configFile, authFile, imageFile, logFile string,
+	routineNum, retries int, defaultDestRegistry, defaultDestNamespace string,
+	osFilterList, archFilterList []string) (*Client, error) {
+
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, authFile, imageFile, defaultDestRegistry, defaultDestNamespace)
+	config, err := NewSyncConfig(configFile, authFile, imageFile,
+		defaultDestRegistry, defaultDestNamespace, osFilterList, archFilterList)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -178,7 +182,8 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 	// if dest is not specific, use default registry and namespace
 	if destination == "" {
 		if c.config.defaultDestRegistry != "" && c.config.defaultDestNamespace != "" {
-			destination = c.config.defaultDestRegistry + "/" + c.config.defaultDestNamespace + "/" + sourceURL.GetRepoWithTag()
+			destination = c.config.defaultDestRegistry + "/" + c.config.defaultDestNamespace + "/" +
+				sourceURL.GetRepoWithTag()
 		} else {
 			return nil, fmt.Errorf("the default registry and namespace should not be nil if you want to use them")
 		}
@@ -189,15 +194,17 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("url %s format error: %v", destination, err)
 	}
 
-	// multi-tags config
 	tags := sourceURL.GetTag()
+
+	// multi-tags config
 	if moreTag := strings.Split(tags, ","); len(moreTag) > 1 {
 		if destURL.GetTag() != "" && destURL.GetTag() != sourceURL.GetTag() {
-			return nil, fmt.Errorf("multi-tags source should not correspond to a destination with tag: %s:%s", sourceURL.GetURL(), destURL.GetURL())
+			return nil, fmt.Errorf("multi-tags source should not correspond to a destination with tag: %s:%s",
+				sourceURL.GetURL(), destURL.GetURL())
 		}
 
 		// contains more than one tag
-		var urlPairs = []*URLPair{}
+		var urlPairs []*URLPair
 		for _, t := range moreTag {
 			urlPairs = append(urlPairs, &URLPair{
 				source:      sourceURL.GetURLWithoutTag() + ":" + t,
@@ -213,13 +220,15 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 
 	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), auth.Username, auth.Password, auth.Insecure)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(),
+			auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}
 	} else {
 		c.logger.Infof("Cannot find auth information for %v, pull actions will be anonymous", sourceURL.GetURL())
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(), "", "", false)
+		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(),
+			"", "", false)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
 		}
@@ -249,7 +258,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return urlPairs, nil
 	}
 
-	// if source tag is set but without destinate tag, use the same tag as source
+	// if source tag is set but without destination tag, use the same tag as source
 	destTag := destURL.GetTag()
 	if destTag == "" {
 		destTag = sourceURL.GetTag()
@@ -257,19 +266,21 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 
 	if auth, exist := c.config.GetAuth(destURL.GetRegistry(), destURL.GetNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", destURL.GetURL(), auth.Username)
-		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(), destTag, auth.Username, auth.Password, auth.Insecure)
+		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(),
+			destTag, auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image destination error: %v", sourceURL.GetURL(), err)
 		}
 	} else {
 		c.logger.Infof("Cannot find auth information for %v, push actions will be anonymous", destURL.GetURL())
-		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(), destTag, "", "", false)
+		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(),
+			destTag, "", "", false)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image destination error: %v", destURL.GetURL(), err)
 		}
 	}
 
-	c.PutATask(sync.NewTask(imageSource, imageDestination, c.logger))
+	c.PutATask(sync.NewTask(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList, c.logger))
 	c.logger.Infof("Generate a task for %s to %s", sourceURL.GetURL(), destURL.GetURL())
 	return nil, nil
 }
