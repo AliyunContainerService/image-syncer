@@ -3,6 +3,7 @@ package sync
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/tidwall/gjson"
@@ -10,11 +11,12 @@ import (
 
 // ManifestHandler expends the ability of handling manifest list in schema2, but it's not finished yet
 // return the digest array of manifests in the manifest list if exist.
-func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema2List) ([]manifest.Manifest, interface{}, error) {
+func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, archFilterList []string,
+	i *ImageSource, parent *manifest.Schema2List) ([]manifest.Manifest, interface{}, error) {
 	var manifestInfoSlice []manifest.Manifest
 
-	if t == manifest.DockerV2Schema2MediaType {
-		manifestInfo, err := manifest.Schema2FromManifest(m)
+	if manifestType == manifest.DockerV2Schema2MediaType {
+		manifestInfo, err := manifest.Schema2FromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -31,28 +33,31 @@ func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema
 				return nil, nil, err
 			}
 			results := gjson.GetManyBytes(bytes, "architecture", "os")
-			if i.platformMatcher != nil && !i.platformMatcher.Match(i.registry, i.repository, i.tag, &manifest.Schema2PlatformSpec{Architecture: results[0].String(), OS: results[1].String()}) {
+
+			if !platformValidate(osFilterList, archFilterList,
+				&manifest.Schema2PlatformSpec{Architecture: results[0].String(), OS: results[1].String()}) {
 				return manifestInfoSlice, manifestInfo, nil
 			}
 		}
 
 		manifestInfoSlice = append(manifestInfoSlice, manifestInfo)
 		return manifestInfoSlice, nil, nil
-	} else if t == manifest.DockerV2Schema1MediaType || t == manifest.DockerV2Schema1SignedMediaType {
-		manifestInfo, err := manifest.Schema1FromManifest(m)
+	} else if manifestType == manifest.DockerV2Schema1MediaType || manifestType == manifest.DockerV2Schema1SignedMediaType {
+		manifestInfo, err := manifest.Schema1FromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		// v1 only support architecture
-		if parent == nil && i.platformMatcher != nil && !i.platformMatcher.Match(i.registry, i.repository, i.tag, &manifest.Schema2PlatformSpec{Architecture: manifestInfo.Architecture}) {
+		// v1 only support architecture and this field is for information purposes and not currently used by the engine.
+		if parent == nil && !platformValidate(osFilterList, archFilterList,
+			&manifest.Schema2PlatformSpec{Architecture: manifestInfo.Architecture}) {
 			return manifestInfoSlice, manifestInfo, nil
 		}
 
 		manifestInfoSlice = append(manifestInfoSlice, manifestInfo)
 		return manifestInfoSlice, nil, nil
-	} else if t == manifest.DockerV2ListMediaType {
-		manifestSchemaListInfo, err := manifest.Schema2ListFromManifest(m)
+	} else if manifestType == manifest.DockerV2ListMediaType {
+		manifestSchemaListInfo, err := manifest.Schema2ListFromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -60,8 +65,8 @@ func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema
 		var nm []manifest.Schema2ManifestDescriptor
 
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
-			// select os arch as configed
-			if i.platformMatcher != nil && !i.platformMatcher.Match(i.registry, i.repository, i.tag, &manifestDescriptorElem.Platform) {
+			// select os and arch
+			if !platformValidate(osFilterList, archFilterList, &manifestDescriptorElem.Platform) {
 				continue
 			}
 
@@ -71,7 +76,8 @@ func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema
 				return nil, nil, err
 			}
 
-			platformSpecManifest, _, err := ManifestHandler(manifestByte, manifestType, i, manifestSchemaListInfo)
+			platformSpecManifest, _, err := ManifestHandler(manifestByte, manifestType,
+				archFilterList, osFilterList, i, manifestSchemaListInfo)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -88,5 +94,43 @@ func ManifestHandler(m []byte, t string, i *ImageSource, parent *manifest.Schema
 		return manifestInfoSlice, nil, nil
 	}
 
-	return nil, nil, fmt.Errorf("unsupported manifest type: %v", t)
+	return nil, nil, fmt.Errorf("unsupported manifest type: %v", manifestType)
+}
+
+// compare first:second to pat, second is optional
+func colonMatch(pat string, first string, second string) bool {
+	if strings.Index(pat, first) != 0 {
+		return false
+	}
+
+	return len(first) == len(pat) || (pat[len(first)] == ':' && pat[len(first)+1:] == second)
+}
+
+// Match platform selector according to the source image and its platform.
+// If platform.OS is not specified, the manifest will never be filtered, the same with platform.Architecture.
+func platformValidate(osFilterList, archFilterList []string, platform *manifest.Schema2PlatformSpec) bool {
+	osMatched := true
+	archMatched := true
+
+	if len(osFilterList) != 0 && platform.OS != "" {
+		osMatched = false
+		for _, o := range osFilterList {
+			// match os:osversion
+			if colonMatch(o, platform.OS, platform.OSVersion) {
+				osMatched = true
+			}
+		}
+	}
+
+	if len(archFilterList) != 0 && platform.Architecture != "" {
+		archMatched = false
+		for _, a := range archFilterList {
+			// match architecture:variant
+			if colonMatch(a, platform.Architecture, platform.Variant) {
+				archMatched = true
+			}
+		}
+	}
+
+	return osMatched && archMatched
 }

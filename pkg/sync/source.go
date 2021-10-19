@@ -22,15 +22,12 @@ type ImageSource struct {
 	registry   string
 	repository string
 	tag        string
-
-	// platformMatcher matcher
-	platformMatcher *tools.Platform
 }
 
 // NewImageSource generates a PullTask by repository, the repository string must include "tag",
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
-func NewImageSource(registry, repository, tag, username, password string, insecure bool, platform *tools.Platform) (*ImageSource, error) {
+func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
 	if tools.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
@@ -74,14 +71,13 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		sourceRef:       srcRef,
-		source:          rawSource,
-		ctx:             ctx,
-		sysctx:          sysctx,
-		registry:        registry,
-		repository:      repository,
-		tag:             tag,
-		platformMatcher: platform,
+		sourceRef:  srcRef,
+		source:     rawSource,
+		ctx:        ctx,
+		sysctx:     sysctx,
+		registry:   registry,
+		repository: repository,
+		tag:        tag,
 	}, nil
 }
 
@@ -99,7 +95,7 @@ func (i *ImageSource) GetBlobInfos(manifestInfoSlice []manifest.Manifest) ([]typ
 		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}
 	// get a Blobs
-	srcBlobs := []types.BlobInfo{}
+	var srcBlobs []types.BlobInfo
 	for _, manifestInfo := range manifestInfoSlice {
 		blobInfos := manifestInfo.LayerInfos()
 		for _, l := range blobInfos {

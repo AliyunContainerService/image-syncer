@@ -145,6 +145,10 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
     --records    指定传输过程中保存已传输完成镜像信息（blob）的文件输出/读取路径，默认输出到当前工作目录，一个records记录了对应目标仓库的已迁移信息，可以用来进行连续的多次迁移（会节约大量时间，但不要把之前自己没执行过的records文件拿来用），如果有unknown blob之类的错误，可以删除该文件重新尝试，image-syncer 在 >= v1.1.0 版本中移除了对于records文件的依赖
 
     --retries    失败同步任务的重试次数，默认为2，重试会在所有任务都被执行一遍之后开始，并且也会重新尝试对应次数生成失败任务的生成。一些偶尔出现的网络错误比如io timeout、TLS handshake timeout，都可以通过设置重试次数来减少失败的任务数量
+
+    --os         用来过滤源 tag 的 os 列表，为空则没有任何过滤要求，只对非 docker v2 schema1 media 类型的镜像格式有效
+
+    --arch       用来过滤源 tag 的 architecture 列表，为空则没有任何过滤要求
 ```
 
 ### FAQs

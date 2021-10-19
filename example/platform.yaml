@@ -1,5 +1,0 @@
-os: [linux,windows:10.0.17763.1999]
-arch: [arm:v7,amd64]
-
-source:
-  include:  [quay.io/coreos/,hello-world]

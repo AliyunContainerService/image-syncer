@@ -106,11 +106,6 @@ func (r *RepoURL) GetTag() string {
 	return r.tag
 }
 
-// SetTag returns the tag in a url
-func (r *RepoURL) SetTag(tag string) {
-	r.tag = tag
-}
-
 // GetRepoWithNamespace returns namespace/repository in a url
 func (r *RepoURL) GetRepoWithNamespace() string {
 	if r.namespace == "" {

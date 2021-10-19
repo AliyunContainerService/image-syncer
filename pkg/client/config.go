@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"gopkg.in/yaml.v2"
 )
 
@@ -19,10 +18,12 @@ type Config struct {
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
 
-	// global platform selector
-	Platform tools.Platform `json:"platform" yaml:"platform"`
+	// only images with selected os can be sync
+	osFilterList []string
+	// only images with selected architecture can be sync
+	archFilterList []string
 
-	// If the destinate registry and namespace is not provided,
+	// If the destination registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry
 	// and defaultDestNamespace with origin repo name and tag.
 	defaultDestRegistry  string
@@ -36,13 +37,9 @@ type Auth struct {
 	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
-// Inline platform identifier in source image url
-const (
-	PLATFORM_TAG = "@platform:"
-)
-
 // NewSyncConfig creates a Config struct
-func NewSyncConfig(configFile, authFilePath, imageFilePath, platformFilePath, defaultDestRegistry, defaultDestNamespace string) (*Config, error) {
+func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string,
+	osFilterList, archFilterList []string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
 	}
@@ -68,34 +65,12 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, platformFilePath, de
 		if err := openAndDecode(imageFilePath, &config.ImageList); err != nil {
 			return nil, fmt.Errorf("decode image file %v error: %v", imageFilePath, err)
 		}
-
-		if len(platformFilePath) != 0 {
-			if err := openAndDecode(platformFilePath, &config.Platform); err != nil {
-				return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
-			}
-
-			var p *tools.Platform = &config.Platform
-			p.Source.IsExclude = true
-			filters := p.Source.Exclude
-			if len(p.Source.Include) != 0 && len(filters) == 0 {
-				filters = p.Source.Include
-				p.Source.IsExclude = false
-			}
-
-			p.Source.Filters = make([]tools.RepoFilter, 0)
-			for _, v := range filters {
-				url, err := tools.NewRepoURL(v)
-				if err != nil {
-					return nil, fmt.Errorf("decode platform file %v error: %v", platformFilePath, err)
-				}
-				p.Source.Filters = append(p.Source.Filters,
-					tools.RepoFilter{Registry: url.GetRegistry(), Repository: url.GetRepoWithNamespace(), Tag: url.GetTag()})
-			}
-		}
 	}
 
 	config.defaultDestNamespace = defaultDestNamespace
 	config.defaultDestRegistry = defaultDestRegistry
+	config.osFilterList = osFilterList
+	config.archFilterList = archFilterList
 
 	return &config, nil
 }
@@ -148,11 +123,6 @@ func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
 // GetImageList gets the ImageList map in Config
 func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
-}
-
-// GetPlatform gets the Platform in Config
-func (c *Config) GetPlatform() *tools.Platform {
-	return &c.Platform
 }
 
 func expandEnv(authMap map[string]Auth) map[string]Auth {

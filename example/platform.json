@@ -1,7 +1,0 @@
-{
-	"os": ["linux", "windows:10.0.17763.1998"],
-	"arch": ["arm:v7","amd64"],
-	"source": {
-		"exclude": ["quay.io/coreos/kube-rbac-proxy"]
-	}
-}
