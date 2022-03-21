@@ -58,8 +58,8 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
-		fmt.Println("Credentials defined...processing")
-		if strings.Contains(repository, "eu.gcr.io") {
+		fmt.Printf("Credentials defined...processing %s - %s\n", registry, repository)
+		if strings.Contains(registry, "eu.gcr.io") {
 			fmt.Println("GCR Credentials defined...processing")
 			tempToken, _, _ := gcpTokenFromCreds(password)
 			fmt.Printf("Temp Token: %s\n", tempToken)
