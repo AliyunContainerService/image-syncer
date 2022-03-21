@@ -5,3 +5,6 @@ records
 *.log
 *.conf
 *.json
+/auth.yaml
+/images.yaml
+/sync.sh

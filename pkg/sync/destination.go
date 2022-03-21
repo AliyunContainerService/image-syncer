@@ -3,7 +3,12 @@ package sync
 import (
 	"context"
 	"fmt"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"io"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
@@ -54,10 +59,19 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
+		fmt.Println("Credentials defined...processing")
+		if strings.Contains(repository, "eu.gcr.io") {
+			fmt.Println("GCR Credentials defined...processing")
+			tempToken, _, _ := gcpTokenFromCreds(password)
+			fmt.Printf("Temp Token: %s\n", tempToken)
+		} else {
+			fmt.Println("Not a GCR Repo... continuing")
+		}
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
 			Password: password,
 		}
+		os.Exit(0)
 	}
 
 	rawDestination, err := destRef.NewImageDestination(ctx, sysctx)
@@ -122,4 +136,22 @@ func (i *ImageDestination) GetRepository() string {
 // GetTag return the tag of a ImageDestination
 func (i *ImageDestination) GetTag() string {
 	return i.tag
+}
+
+func gcpTokenFromCreds(creds string) (string, time.Time, error) {
+	// create byte array from string
+	b := []byte(creds)
+
+	conf, err := google.JWTConfigFromJSON(
+		b, "https://www.googleapis.com/auth/devstorage.read_write")
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	token, err := conf.TokenSource(oauth2.NoContext).Token()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return token.AccessToken, token.Expiry, nil
 }
