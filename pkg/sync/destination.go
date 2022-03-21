@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -139,8 +140,15 @@ func (i *ImageDestination) GetTag() string {
 
 func gcpTokenFromCreds(creds string) (string, time.Time, error) {
 	// create byte array from string
-	b := []byte(creds)
-
+	//b := []byte(creds)
+	//b, err := ioutil.ReadFile("cred")
+	//if err != nil {
+	//	return "", time.Time{}, err
+	//}
+	b, err := base64.StdEncoding.DecodeString(creds)
+	if err != nil {
+		return "", time.Time{}, err
+	}
 	conf, err := google.JWTConfigFromJSON(
 		b, "https://www.googleapis.com/auth/devstorage.read_write")
 	if err != nil {
