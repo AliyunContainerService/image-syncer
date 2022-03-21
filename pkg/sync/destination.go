@@ -6,7 +6,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -71,7 +70,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 			Username: username,
 			Password: password,
 		}
-		os.Exit(0)
+		//os.Exit(0)
 	}
 
 	rawDestination, err := destRef.NewImageDestination(ctx, sysctx)
