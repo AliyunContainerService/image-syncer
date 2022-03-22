@@ -59,15 +59,20 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
-		fmt.Printf("Credentials defined...processing %s - %s\n", registry, repository)
+		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
+		//c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
 		if strings.Contains(registry, ".gcr.io") {
-			fmt.Println("GCR Credentials defined...processing")
-			tempToken, _, _ := gcpTokenFromCreds(password)
-			fmt.Printf("Temp Token: %s\n", tempToken)
-			password = tempToken
+			fmt.Printf("Getting oauth2 token for %s...\n", username)
+			token, time, err := gcpTokenFromCreds(password)
+			if err != nil {
+				fmt.Printf("Error getting oauth2 token from GCP: %s\n", err)
+				return nil, err
+			}
+
+			fmt.Printf("oauth2 token: %s\n", token)
+			fmt.Printf("oauth2 token expiry: %s\n", time)
+			password = token
 			username = "oauth2accesstoken"
-		} else {
-			fmt.Println("Not a GCR Repo... continuing")
 		}
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
