@@ -92,7 +92,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	}, nil
 }
 
-// isGooglePermanentServiceAccount returns true if user is a Google permanent service account token
+// isPermanentServiceAccountToken returns true if user is a Google permanent service account token
 func isPermanentServiceAccountToken(registry string, username string) bool {
 	return strings.Contains(registry, ".gcr.io") && strings.Compare(username, "_json_key") == 0
 }
