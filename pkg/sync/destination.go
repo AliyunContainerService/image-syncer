@@ -60,14 +60,13 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
 		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
-		if strings.Contains(registry, ".gcr.io") {
+		if isPermanentServiceAccountToken(registry, username) {
 			fmt.Printf("Getting oauth2 token for %s...\n", username)
 			token, expiry, err := gcpTokenFromCreds(password)
 			if err != nil {
 				return nil, err
 			}
 
-			//fmt.Printf("oauth2 token: %s\n", token)
 			fmt.Printf("oauth2 token expiry: %s\n", expiry)
 			password = token
 			username = "oauth2accesstoken"
@@ -92,6 +91,11 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		repository:     repository,
 		tag:            tag,
 	}, nil
+}
+
+// isGooglePermanentServiceAccount returns true if user is a Google permanent service account token
+func isPermanentServiceAccountToken(registry string, username string) bool {
+	return strings.Contains(registry, ".gcr.io") && strings.Compare(username, "_json_key") == 0
 }
 
 // PushManifest push a manifest file to destination image
