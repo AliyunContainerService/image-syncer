@@ -60,17 +60,15 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
 		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
-		//c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
 		if strings.Contains(registry, ".gcr.io") {
 			fmt.Printf("Getting oauth2 token for %s...\n", username)
-			token, time, err := gcpTokenFromCreds(password)
+			token, expiry, err := gcpTokenFromCreds(password)
 			if err != nil {
-				fmt.Printf("Error getting oauth2 token from GCP: %s\n", err)
 				return nil, err
 			}
 
-			fmt.Printf("oauth2 token: %s\n", token)
-			fmt.Printf("oauth2 token expiry: %s\n", time)
+			//fmt.Printf("oauth2 token: %s\n", token)
+			fmt.Printf("oauth2 token expiry: %s\n", expiry)
 			password = token
 			username = "oauth2accesstoken"
 		}
@@ -145,12 +143,6 @@ func (i *ImageDestination) GetTag() string {
 }
 
 func gcpTokenFromCreds(creds string) (string, time.Time, error) {
-	// create byte array from string
-	//b := []byte(creds)
-	//b, err := ioutil.ReadFile("cred")
-	//if err != nil {
-	//	return "", time.Time{}, err
-	//}
 	b, err := base64.StdEncoding.DecodeString(creds)
 	if err != nil {
 		return "", time.Time{}, err
