@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"io"
 	"strings"
@@ -157,7 +156,7 @@ func gcpTokenFromCreds(creds string) (string, time.Time, error) {
 		return "", time.Time{}, err
 	}
 
-	token, err := conf.TokenSource(oauth2.NoContext).Token()
+	token, err := conf.TokenSource(context.Background()).Token()
 	if err != nil {
 		return "", time.Time{}, err
 	}
