@@ -1,9 +1,8 @@
+/image-syncer
 records
 .idea
 .vscode
 *.log
 *.conf
 *.json
-/auth.yaml
-/images.yaml
-/sync.sh
+
