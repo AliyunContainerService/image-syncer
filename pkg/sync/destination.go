@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"golang.org/x/oauth2/google"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
@@ -90,11 +89,6 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		repository:     repository,
 		tag:            tag,
 	}, nil
-}
-
-// isPermanentServiceAccountToken returns true if user is a Google permanent service account token
-func isPermanentServiceAccountToken(registry string, username string) bool {
-	return strings.Contains(registry, ".gcr.io") && strings.Compare(username, "_json_key") == 0
 }
 
 // PushManifest push a manifest file to destination image
