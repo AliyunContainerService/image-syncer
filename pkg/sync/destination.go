@@ -2,15 +2,11 @@ package sync
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"golang.org/x/oauth2/google"
-	"io"
-	"time"
-
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
+	"io"
 )
 
 // ImageDestination is a reference of a remote image we will push to
@@ -137,23 +133,4 @@ func (i *ImageDestination) GetRepository() string {
 // GetTag return the tag of a ImageDestination
 func (i *ImageDestination) GetTag() string {
 	return i.tag
-}
-
-func gcpTokenFromCreds(creds string) (string, time.Time, error) {
-	b, err := base64.StdEncoding.DecodeString(creds)
-	if err != nil {
-		return "", time.Time{}, err
-	}
-	conf, err := google.JWTConfigFromJSON(
-		b, "https://www.googleapis.com/auth/devstorage.read_write")
-	if err != nil {
-		return "", time.Time{}, err
-	}
-
-	token, err := conf.TokenSource(context.Background()).Token()
-	if err != nil {
-		return "", time.Time{}, err
-	}
-
-	return token.AccessToken, token.Expiry, nil
 }
