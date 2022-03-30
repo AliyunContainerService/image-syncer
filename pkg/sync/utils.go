@@ -3,9 +3,10 @@ package sync
 import (
 	"context"
 	"encoding/base64"
-	"golang.org/x/oauth2/google"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2/google"
 )
 
 type ctxKey struct {

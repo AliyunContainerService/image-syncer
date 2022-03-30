@@ -3,10 +3,11 @@ package sync
 import (
 	"context"
 	"fmt"
+	"io"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
-	"io"
 )
 
 // ImageDestination is a reference of a remote image we will push to
