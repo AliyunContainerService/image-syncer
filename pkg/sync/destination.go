@@ -54,6 +54,18 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
 	if username != "" && password != "" {
+		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
+		if isPermanentServiceAccountToken(registry, username) {
+			fmt.Printf("Getting oauth2 token for %s...\n", username)
+			token, expiry, err := gcpTokenFromCreds(password)
+			if err != nil {
+				return nil, err
+			}
+
+			fmt.Printf("oauth2 token expiry: %s\n", expiry)
+			password = token
+			username = "oauth2accesstoken"
+		}
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,
 			Password: password,
