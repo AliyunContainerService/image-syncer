@@ -60,10 +60,9 @@ func (t *Task) Run() error {
 	}
 
 	if len(manifestInfoSlice) == 0 {
-		t.Infof("Skip synchronization from %s/%s:%s to %s/%s:%s, mismatch of os or architecture",
+		return t.Errorf("Skip synchronization from %s/%s:%s to %s/%s:%s, mismatch of os or architecture",
 			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
 			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
-		return nil
 	}
 
 	blobInfos, err := t.source.GetBlobInfos(manifestInfoSlice)
