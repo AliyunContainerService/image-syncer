@@ -42,6 +42,12 @@ func NewTask(source *ImageSource, destination *ImageDestination,
 	}
 }
 
+// Get UrlPair
+func (t *Task) GetUrlPair() (*ImageSource, *ImageDestination) {
+	return t.source, t.destination
+
+}
+
 // Run is the main function of a sync task
 func (t *Task) Run() error {
 	// get manifest from source

@@ -125,7 +125,7 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 }
 
 // Run is main function of a synchronization client
-func (c *Client) Run() {
+func (c *Client) Run() error {
 	fmt.Println("Start to generate sync tasks, please wait ...")
 
 	//var finishChan = make(chan struct{}, c.routineNum)
@@ -168,7 +168,17 @@ func (c *Client) Run() {
 
 	//fmt.Printf("Finished, %v sync tasks failed, %v tasks generate failed\n", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
 	c.logger.Infof("Finished, %v sync tasks failed, %v tasks generate failed", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
-	if c.failedTaskGenerateList.Len() != 0 {
+	fileName := "failed_images.yaml"
+	if c.failedTaskGenerateList.Len() == 0 {
+		_, err := os.Stat(fileName)
+		if os.IsNotExist(err) {
+			fmt.Printf("sync successed")
+		} else {
+			if err := os.Remove(fileName); err != nil {
+				fmt.Printf("remove %s %s", fileName, err.Error())
+			}
+		}
+	} else {
 		urlMap := make(map[string]string)
 		for i, e := c.failedTaskGenerateList.Len(), c.failedTaskGenerateList.Front(); i > 0; i, e = i-1, e.Next() {
 			urlPair := e.Value.(*URLPair)
@@ -179,24 +189,18 @@ func (c *Client) Run() {
 			c.logger.Errorf("yaml failed %s", err.Error())
 		}
 		fmt.Printf("%s", urlYaml)
-		fileName := "failed_images.yaml"
 		var d = []byte(urlYaml)
 		err = ioutil.WriteFile(fileName, d, 0666)
 		if err != nil {
 			c.logger.Errorf("write %s fail %s", fileName, err.Error())
 		}
 		c.logger.Infof("write %s success", fileName)
-	} else {
-		fileName := "failed_images.yaml"
-		_, err := os.Stat(fileName)
-		if os.IsNotExist(err) {
-			fmt.Printf("sync successed")
-		} else {
-			if err := os.Remove(fileName); err != nil {
-				fmt.Printf("remove %s %s", fileName, err.Error())
-			}
-		}
 	}
+	if c.failedTaskList.Len() != 0 {
+		c.logger.Errorf("failed task sync ,maybe arch or os miss")
+		return fmt.Errorf("failed task sync ,maybe arch or os miss")
+	}
+	return nil
 }
 
 // GenerateSyncTask creates synchronization tasks from source and destination url, return URLPair array if there are more than one tags

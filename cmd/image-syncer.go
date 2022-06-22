@@ -32,7 +32,9 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("init sync client error: %v", err)
 		}
 
-		client.Run()
+		if err := client.Run(); err != nil {
+			return err
+		}
 		return nil
 	},
 }
