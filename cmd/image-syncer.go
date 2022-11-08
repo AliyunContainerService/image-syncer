@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/client"
+	"github.com/cndoit18/image-syncer/pkg/client"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ var RootCmd = &cobra.Command{
 	Short:   "A docker registry image synchronization tool",
 	Long: `A Fast and Flexible docker registry image synchronization tool implement by Go. 
 	
-	Complete documentation is available at https://github.com/AliyunContainerService/image-syncer`,
+	Complete documentation is available at https://github.com/cndoit18/image-syncer`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,

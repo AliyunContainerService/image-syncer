@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/AliyunContainerService/image-syncer/cmd"
+	"github.com/cndoit18/image-syncer/cmd"
 )
 
 func main() {

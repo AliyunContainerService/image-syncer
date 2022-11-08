@@ -1,9 +1,9 @@
 # image-syncer
 
-![workflow check](https://github.com/AliyunContainerService/image-syncer/actions/workflows/check.yml/badge.svg)
-![workflow build](https://github.com/AliyunContainerService/image-syncer/actions/workflows/build.yml/badge.svg)
-[![Version](https://img.shields.io/github/v/release/AliyunContainerService/image-syncer)](https://github.com/AliyunContainerService/image-syncer/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/AliyunContainerService/image-syncer)](https://goreportcard.com/report/github.com/AliyunContainerService/image-syncer)
+![workflow check](https://github.com/cndoit18/image-syncer/actions/workflows/check.yml/badge.svg)
+![workflow build](https://github.com/cndoit18/image-syncer/actions/workflows/build.yml/badge.svg)
+[![Version](https://img.shields.io/github/v/release/AliyunContainerService/image-syncer)](https://github.com/cndoit18/image-syncer/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cndoit18/image-syncer)](https://goreportcard.com/report/github.com/cndoit18/image-syncer)
 [![Github All Releases](https://img.shields.io/github/downloads/AliyunContainerService/image-syncer/total.svg)](https://api.github.com/repos/AliyunContainerService/image-syncer/releases)
 [![codecov](https://codecov.io/gh/AliyunContainerService/image-syncer/graph/badge.svg)](https://codecov.io/gh/AliyunContainerService/image-syncer)
 [![License](https://img.shields.io/github/license/AliyunContainerService/image-syncer)](https://www.apache.org/licenses/LICENSE-2.0.html)
@@ -26,13 +26,13 @@ English | [简体中文](./README-zh_CN.md)
 
 ### Install image-syncer
 
-You can download latest binary release [here](https://github.com/AliyunContainerService/image-syncer/releases)
+You can download latest binary release [here](https://github.com/cndoit18/image-syncer/releases)
 
 ### Compile Manually
 
 ```
-go get github.com/AliyunContainerService/image-syncer
-cd $GOPATH/github.com/AliyunContainerService/image-syncer
+go get github.com/cndoit18/image-syncer
+cd $GOPATH/github.com/cndoit18/image-syncer
 
 # This will create a binary file named image-syncer
 make
