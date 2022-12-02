@@ -92,6 +92,13 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 		}
 
 		return manifestInfoSlice, nil, nil
+	} else if t == v1.MediaTypeImageManifest {
+		manifestInfo, err := manifest.OCI1FromManifest(m)
+		if err != nil {
+			return nil, err
+		}
+		manifestInfoSlice = append(manifestInfoSlice, manifestInfo)
+		return manifestInfoSlice, nil
 	}
 
 	return nil, nil, fmt.Errorf("unsupported manifest type: %v", manifestType)
