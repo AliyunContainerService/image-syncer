@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/containers/image/v5 v5.25.0
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/sirupsen/logrus v1.9.0

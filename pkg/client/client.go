@@ -218,7 +218,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 	var imageSource *sync.ImageSource
 	var imageDestination *sync.ImageDestination
 
-	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace()); exist {
+	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace(), sourceURL.GetRepoWithNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
 		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(),
 			auth.Username, auth.Password, auth.Insecure)
@@ -264,7 +264,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		destTag = sourceURL.GetTag()
 	}
 
-	if auth, exist := c.config.GetAuth(destURL.GetRegistry(), destURL.GetNamespace()); exist {
+	if auth, exist := c.config.GetAuth(destURL.GetRegistry(), destURL.GetNamespace(), destURL.GetRepoWithNamespace()); exist {
 		c.logger.Infof("Find auth information for %v, username: %v", destURL.GetURL(), auth.Username)
 		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(),
 			destTag, auth.Username, auth.Password, auth.Insecure)

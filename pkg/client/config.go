@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -13,7 +14,7 @@ import (
 // Config information of sync client
 type Config struct {
 	// the authentication information of each registry
-	AuthList map[string]Auth `json:"auth" yaml:"auth"`
+	AuthList map[string][]Auth `json:"auth" yaml:"auth"`
 
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
@@ -108,16 +109,55 @@ func openAndDecode(filePath string, target interface{}) error {
 }
 
 // GetAuth gets the authentication information in Config
-func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
+func (c *Config) GetAuth(registry, namespace, repository string) (Auth, bool) {
 	// key of each AuthList item can be "registry/namespace" or "registry" only
 	registryAndNamespace := registry + "/" + namespace
 
-	if moreSpecificAuth, exist := c.AuthList[registryAndNamespace]; exist {
-		return moreSpecificAuth, exist
+	_, ok1 := c.AuthList[registryAndNamespace]
+	_, ok2 := c.AuthList[registry]
+	if !ok1 && !ok2 {
+		return Auth{}, false
 	}
 
-	auth, exist := c.AuthList[registry]
-	return auth, exist
+	auth, ok := c.selectAuth(registry, c.AuthList[registryAndNamespace])
+	if ok {
+		return auth, ok
+	}
+
+	return c.selectAuth(registry, c.AuthList[registry])
+}
+
+func (c *Config) selectAuth(registry string, auths []Auth) (Auth, bool) {
+	if len(auths) == 0 {
+		return Auth{}, false
+	}
+
+	if len(auths) == 1 {
+		return auths[0], true
+	}
+
+	if registry != "registry.hub.docker.com" {
+		index := rand.Intn(len(auths))
+		return auths[index], true
+	}
+
+	// unlimited images
+	rate := checkDockerPullRateLimits(registry, "", "")
+	if rate.limit == 0 {
+		index := rand.Intn(len(auths))
+		return auths[index], true
+	}
+
+	// when remain gt 0, random select auth
+	remains := make([]Auth, 0, len(auths))
+	for _, auth := range auths {
+		rate := checkDockerPullRateLimits(registry, auth.Username, auth.Password)
+		if rate.remain > 0 {
+			remains = append(remains, auth)
+		}
+	}
+	index := rand.Intn(len(auths))
+	return auths[index], true
 }
 
 // GetImageList gets the ImageList map in Config
@@ -125,19 +165,22 @@ func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
 }
 
-func expandEnv(authMap map[string]Auth) map[string]Auth {
+func expandEnv(authMap map[string][]Auth) map[string][]Auth {
 
-	result := make(map[string]Auth)
+	result := make(map[string][]Auth, len(authMap))
 
-	for registry, auth := range authMap {
-		pwd := os.ExpandEnv(auth.Password)
-		name := os.ExpandEnv(auth.Username)
-		newAuth := Auth{
-			Username: name,
-			Password: pwd,
-			Insecure: auth.Insecure,
+	for registry, auths := range authMap {
+		result[registry] = make([]Auth, 0, len(auths))
+		for _, auth := range auths {
+			pwd := os.ExpandEnv(auth.Password)
+			name := os.ExpandEnv(auth.Username)
+			newAuth := Auth{
+				Username: name,
+				Password: pwd,
+				Insecure: auth.Insecure,
+			}
+			result[registry] = append(result[registry], newAuth)
 		}
-		result[registry] = newAuth
 	}
 
 	return result
