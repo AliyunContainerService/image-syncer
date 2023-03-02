@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
+	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/tidwall/gjson"
 )
 
@@ -89,6 +90,53 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 		if len(nm) != len(manifestSchemaListInfo.Manifests) {
 			manifestSchemaListInfo.Manifests = nm
 			return manifestInfoSlice, manifestSchemaListInfo, nil
+		}
+
+		return manifestInfoSlice, nil, nil
+	} else if manifestType == specsv1.MediaTypeImageManifest {
+		ociImage, err := manifest.OCI1FromManifest(manifestBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+		manifestInfoSlice = append(manifestInfoSlice, ociImage)
+		return manifestInfoSlice, nil, nil
+	} else if manifestType == specsv1.MediaTypeImageIndex {
+		ociIndexes, err := manifest.OCI1IndexFromManifest(manifestBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var descriptors []specsv1.Descriptor
+
+		for _, descriptor := range ociIndexes.Manifests {
+			// select os and arch
+			if !platformValidate(osFilterList, archFilterList, &manifest.Schema2PlatformSpec{
+				Architecture: descriptor.Platform.Architecture,
+				OS:           descriptor.Platform.OS,
+			}) {
+				continue
+			}
+
+			descriptors = append(descriptors, descriptor)
+
+			manifestByte, manifestType, innerErr := i.source.GetManifest(i.ctx, &descriptor.Digest)
+			if innerErr != nil {
+				return nil, nil, innerErr
+			}
+
+			platformSpecManifest, _, innerErr := ManifestHandler(manifestByte, manifestType,
+				archFilterList, osFilterList, i, nil)
+			if innerErr != nil {
+				return nil, nil, err
+			}
+
+			manifestInfoSlice = append(manifestInfoSlice, platformSpecManifest...)
+		}
+
+		// return a new Schema2List
+		if len(descriptors) != len(ociIndexes.Manifests) {
+			ociIndexes.Manifests = descriptors
+			return manifestInfoSlice, ociIndexes, nil
 		}
 
 		return manifestInfoSlice, nil, nil
