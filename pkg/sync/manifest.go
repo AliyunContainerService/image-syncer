@@ -2,7 +2,7 @@ package sync
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
@@ -28,7 +28,7 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 				return nil, nil, err
 			}
 			defer blob.Close()
-			bytes, err := ioutil.ReadAll(blob)
+			bytes, err := io.ReadAll(blob)
 			if err != nil {
 				return nil, nil, err
 			}
