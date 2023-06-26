@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"github.com/AliyunContainerService/image-syncer/pkg/tools"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 )
 
 // ImageDestination is a reference of a remote image we will push to
@@ -72,14 +74,14 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		}
 	}
 
-	rawDestination, err := destRef.NewImageDestination(ctx, sysctx)
+	destination, err := destRef.NewImageDestination(ctx, sysctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ImageDestination{
 		destinationRef: destRef,
-		destination:    rawDestination,
+		destination:    destination,
 		ctx:            ctx,
 		sysctx:         sysctx,
 		registry:       registry,
@@ -91,6 +93,32 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 // PushManifest push a manifest file to destination image
 func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 	return i.destination.PutManifest(i.ctx, manifestByte, nil)
+}
+
+// CheckManifestChanged checks if manifest of destination (tag) has changed, by manifest bytes or digest
+func (i *ImageDestination) CheckManifestChanged(newManifestByte []byte) bool {
+	var err error
+
+	// create source to check manifest
+	source, err := i.destinationRef.NewImageSource(i.ctx, i.sysctx)
+	if err != nil {
+		// if the source cannot be created, manifest not exist
+		return false
+	}
+
+	// just use tag to get manifest
+	tDigest := digest.Digest(i.tag)
+	tManifestByte, _, err := source.GetManifest(i.ctx, &tDigest)
+	if err != nil {
+		// if error happens, it's considered that the manifest not exist
+		return false
+	}
+
+	if !bytes.Equal(tManifestByte, newManifestByte) {
+		return false
+	}
+
+	return true
 }
 
 // PutABlob push a blob to destination image

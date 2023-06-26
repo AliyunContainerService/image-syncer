@@ -61,10 +61,10 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		}
 	}
 
-	var rawSource types.ImageSource
+	var source types.ImageSource
 	if tag != "" {
 		// if tag is empty, will attach to the "latest" tag, and will get a error if "latest" is not exist
-		rawSource, err = srcRef.NewImageSource(ctx, sysctx)
+		source, err = srcRef.NewImageSource(ctx, sysctx)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 
 	return &ImageSource{
 		sourceRef:  srcRef,
-		source:     rawSource,
+		source:     source,
 		ctx:        ctx,
 		sysctx:     sysctx,
 		registry:   registry,
