@@ -8,6 +8,6 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.6.1
 	github.com/tidwall/gjson v1.9.3
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	gopkg.in/yaml.v2 v2.3.0
 )
