@@ -50,7 +50,7 @@ make
 --registry=registry.cn-beijing.aliyuncs.com --retries=3
 ```
 
-<!-- 
+<!--
 ### 同步镜像到ACR
 
 ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业版(EE)提供了企业级的容器镜像、Helm Chart 安全托管能力，推荐安全需求高、业务多地域部署、拥有大规模集群节点的企业级客户使用。
@@ -71,30 +71,30 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 `auth.json` 包含了所有仓库的认证信息
 
 ```java
-{  
+{
     // 认证字段，其中每个对象为一个registry的一个账号和
     // 密码；通常，同步源需要具有pull以及访问tags权限，
     // 同步目标需要拥有push以及创建仓库权限，如果没有提供，则默认匿名访问
-    
-    "quay.io": {    // 支持 "registry" 和 "registry/namespace"（v1.0.3之后的版本） 的形式，需要跟下面images中的registry(registry/namespace)对应
+
+    "quay.io": [{    // 支持 "registry" 和 "registry/namespace"（v1.0.3之后的版本） 的形式，需要跟下面images中的registry(registry/namespace)对应
                     // images中被匹配到的的url会使用对应账号密码进行镜像同步, 优先匹配 "registry/namespace" 的形式
         "username": "xxx",               // 用户名，可选，（v1.3.1 之后支持）valuse 使用 "${env}" 或者 "$env" 类型的字符串可以引用环境变量
         "password": "xxxxxxxxx",         // 密码，可选，（v1.3.1 之后支持）valuse 使用 "${env}" 或者 "$env" 类型的字符串可以引用环境变量
         "insecure": true                 // registry是否是http服务，如果是，insecure 字段需要为true，默认是false，可选，支持这个选项需要image-syncer版本 > v1.0.1
-    },
-    "registry.cn-beijing.aliyuncs.com": {
+    }],
+    "registry.cn-beijing.aliyuncs.com": [{
         "username": "xxx",
         "password": "xxxxxxxxx"
-    },
-    "registry.hub.docker.com": {
+    }],
+    "registry.hub.docker.com": [{
         "username": "xxx",
         "password": "xxxxxxxxxx"
-    },
-    "quay.io/coreos": {                       
-        "username": "abc",              
+    }],
+    "quay.io/coreos": [{
+        "username": "abc",
         "password": "xxxxxxxxx",
-        "insecure": true  
-    }
+        "insecure": true
+    }]
 }
 ```
 
@@ -103,9 +103,9 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 ```java
 {
     // 同步镜像规则字段，其中条规则包括一个源仓库（键）和一个目标仓库（值）
-    
+
     // 同步的最大单位是仓库（repo），不支持通过一条规则同步整个namespace以及registry
-    
+
     // 源仓库和目标仓库的格式与docker pull/push命令使用的镜像url类似（registry/namespace/repository:tag）
     // 源仓库和目标仓库（如果目标仓库不为空字符串）都至少包含registry/namespace/repository
     // 源仓库字段不能为空，如果需要将一个源仓库同步到多个目标仓库需要配置多条规则
@@ -118,7 +118,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
     // 当源仓库字段中不包含tag时，表示将该仓库所有tag同步到目标仓库，此时目标仓库不能包含tag
     // 当源仓库字段中包含tag时，表示只同步源仓库中的一个tag到目标仓库，如果目标仓库中不包含tag，则默认使用源tag
     // 源仓库字段中的tag可以同时包含多个（比如"a/b/c:1,2,3"），tag之间通过","隔开，此时目标仓库不能包含tag，并且默认使用原来的tag
-    
+
     // 当目标仓库为空字符串时，会将源镜像同步到默认registry的默认namespace下，并且repo以及tag与源仓库相同，默认registry和默认namespace可以通过命令行参数以及环境变量配置，参考下面的描述
 }
 ```
@@ -129,7 +129,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
 
 ```
 -h  --help       使用说明，会打印出一些启动参数的当前默认值
-   
+
     --config     设置用户提供的配置文件路径，使用之前需要创建此文件，默认为当前工作目录下的config.json文件。这个参数与 --auth和--images 的
                  作用相同，分解成两个参数可以更好地区分认证信息与镜像仓库同步规则。建议使用 --auth 和 --images.
 
