@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2.1.3
         with:
-          go-version: 1.15.7
+          go-version: 1.19.6
       - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
@@ -44,7 +44,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15.7
+          go-version: 1.19.6
 
       - name: Build
         run: make

@@ -52,6 +52,13 @@ func (t *Task) Run() error {
 	}
 	t.Infof("Get manifest from %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
 
+	if changed := t.destination.CheckManifestChanged(manifestBytes); changed {
+		// do nothing if manifest is not changed
+		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+		return nil
+	}
+
 	manifestInfoSlice, thisManifestInfo, err := ManifestHandler(manifestBytes, manifestType,
 		t.osFilterList, t.archFilterList, t.source, nil)
 	if err != nil {

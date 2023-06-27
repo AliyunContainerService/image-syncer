@@ -5,3 +5,4 @@ records
 *.log
 *.conf
 *.json
+*.yaml
