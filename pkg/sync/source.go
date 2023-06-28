@@ -89,8 +89,8 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 	return i.source.GetManifest(i.ctx, nil)
 }
 
-// GetBlobInfos get blobs from source image.
-func (i *ImageSource) GetBlobInfos(manifestInfoSlice []manifest.Manifest) ([]types.BlobInfo, error) {
+// GetBlobInfos get blob infos from non-list type manifests.
+func (i *ImageSource) GetBlobInfos(manifestInfoSlice ...manifest.Manifest) ([]types.BlobInfo, error) {
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}

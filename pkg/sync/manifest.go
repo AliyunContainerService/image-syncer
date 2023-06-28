@@ -10,13 +10,15 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// ManifestHandler expends the ability of handling manifest list in schema2, but it's not finished yet
-// return the digest array of manifests in the manifest list if exist.
-func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, archFilterList []string,
-	i *ImageSource, parent *manifest.Schema2List) ([]manifest.Manifest, interface{}, error) {
-	var manifestInfoSlice []manifest.Manifest
+// GenerateManifestObj returns a manifest object and a sub manifest object array for list-type manifests.
+// For list type manifest, the origin manifest info might be modified because of platform filters, and a nil manifest
+// object will be returned if no sub manifest need to transport.
+// For non-list type manifests, which doesn't match the filters, a nil manifest object will be returned.
+func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList, archFilterList []string,
+	i *ImageSource, parent *manifest.Schema2List) (interface{}, []manifest.Manifest, error) {
 
-	if manifestType == manifest.DockerV2Schema2MediaType {
+	switch manifestType {
+	case manifest.DockerV2Schema2MediaType:
 		manifestInfo, err := manifest.Schema2FromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
@@ -37,13 +39,12 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 
 			if !platformValidate(osFilterList, archFilterList,
 				&manifest.Schema2PlatformSpec{Architecture: results[0].String(), OS: results[1].String()}) {
-				return manifestInfoSlice, manifestInfo, nil
+				return nil, nil, nil
 			}
 		}
 
-		manifestInfoSlice = append(manifestInfoSlice, manifestInfo)
-		return manifestInfoSlice, nil, nil
-	} else if manifestType == manifest.DockerV2Schema1MediaType || manifestType == manifest.DockerV2Schema1SignedMediaType {
+		return manifestInfo, nil, nil
+	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType:
 		manifestInfo, err := manifest.Schema1FromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
@@ -52,18 +53,26 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 		// v1 only support architecture and this field is for information purposes and not currently used by the engine.
 		if parent == nil && !platformValidate(osFilterList, archFilterList,
 			&manifest.Schema2PlatformSpec{Architecture: manifestInfo.Architecture}) {
-			return manifestInfoSlice, manifestInfo, nil
+			return nil, nil, nil
 		}
 
-		manifestInfoSlice = append(manifestInfoSlice, manifestInfo)
-		return manifestInfoSlice, nil, nil
-	} else if manifestType == manifest.DockerV2ListMediaType {
+		return manifestInfo, nil, nil
+	case specsv1.MediaTypeImageManifest:
+		//TODO: platform filter?
+		ociImage, err := manifest.OCI1FromManifest(manifestBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+		return ociImage, nil, nil
+	case manifest.DockerV2ListMediaType:
+		var subManifestInfoSlice []manifest.Manifest
+
 		manifestSchemaListInfo, err := manifest.Schema2ListFromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		var nm []manifest.Schema2ManifestDescriptor
+		var filteredDescriptors []manifest.Schema2ManifestDescriptor
 
 		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
 			// select os and arch
@@ -71,42 +80,44 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 				continue
 			}
 
-			nm = append(nm, manifestDescriptorElem)
+			filteredDescriptors = append(filteredDescriptors, manifestDescriptorElem)
 			manifestByte, manifestType, err := i.source.GetManifest(i.ctx, &manifestDescriptorElem.Digest)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			platformSpecManifest, _, err := ManifestHandler(manifestByte, manifestType,
+			//TODO: will the sub manifest be list-type?
+			subManifest, _, err := GenerateManifestObj(manifestByte, manifestType,
 				archFilterList, osFilterList, i, manifestSchemaListInfo)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			manifestInfoSlice = append(manifestInfoSlice, platformSpecManifest...)
+			if subManifest != nil {
+				subManifestInfoSlice = append(subManifestInfoSlice, subManifest.(manifest.Manifest))
+			}
+		}
+
+		// no sub manifests need to transport
+		if len(filteredDescriptors) == 0 {
+			return nil, nil, nil
 		}
 
 		// return a new Schema2List
-		if len(nm) != len(manifestSchemaListInfo.Manifests) {
-			manifestSchemaListInfo.Manifests = nm
-			return manifestInfoSlice, manifestSchemaListInfo, nil
+		if len(filteredDescriptors) != len(manifestSchemaListInfo.Manifests) {
+			manifestSchemaListInfo.Manifests = filteredDescriptors
 		}
 
-		return manifestInfoSlice, nil, nil
-	} else if manifestType == specsv1.MediaTypeImageManifest {
-		ociImage, err := manifest.OCI1FromManifest(manifestBytes)
-		if err != nil {
-			return nil, nil, err
-		}
-		manifestInfoSlice = append(manifestInfoSlice, ociImage)
-		return manifestInfoSlice, nil, nil
-	} else if manifestType == specsv1.MediaTypeImageIndex {
+		return manifestSchemaListInfo, subManifestInfoSlice, nil
+	case specsv1.MediaTypeImageIndex:
+		var subManifestInfoSlice []manifest.Manifest
+
 		ociIndexes, err := manifest.OCI1IndexFromManifest(manifestBytes)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		var descriptors []specsv1.Descriptor
+		var filteredDescriptors []specsv1.Descriptor
 
 		for _, descriptor := range ociIndexes.Manifests {
 			// select os and arch
@@ -117,32 +128,37 @@ func ManifestHandler(manifestBytes []byte, manifestType string, osFilterList, ar
 				continue
 			}
 
-			descriptors = append(descriptors, descriptor)
+			filteredDescriptors = append(filteredDescriptors, descriptor)
 
 			manifestByte, manifestType, innerErr := i.source.GetManifest(i.ctx, &descriptor.Digest)
 			if innerErr != nil {
 				return nil, nil, innerErr
 			}
 
-			platformSpecManifest, _, innerErr := ManifestHandler(manifestByte, manifestType,
+			//TODO: will the sub manifest be list-type?
+			subManifest, _, innerErr := GenerateManifestObj(manifestByte, manifestType,
 				archFilterList, osFilterList, i, nil)
 			if innerErr != nil {
 				return nil, nil, err
 			}
 
-			manifestInfoSlice = append(manifestInfoSlice, platformSpecManifest...)
+			subManifestInfoSlice = append(subManifestInfoSlice, subManifest.(manifest.Manifest))
+		}
+
+		// no sub manifests need to transport
+		if len(filteredDescriptors) == 0 {
+			return nil, nil, nil
 		}
 
 		// return a new Schema2List
-		if len(descriptors) != len(ociIndexes.Manifests) {
-			ociIndexes.Manifests = descriptors
-			return manifestInfoSlice, ociIndexes, nil
+		if len(filteredDescriptors) != len(ociIndexes.Manifests) {
+			ociIndexes.Manifests = filteredDescriptors
 		}
 
-		return manifestInfoSlice, nil, nil
+		return ociIndexes, subManifestInfoSlice, nil
+	default:
+		return nil, nil, fmt.Errorf("unsupported manifest type: %v", manifestType)
 	}
-
-	return nil, nil, fmt.Errorf("unsupported manifest type: %v", manifestType)
 }
 
 // compare first:second to pat, second is optional
