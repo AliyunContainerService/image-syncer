@@ -54,21 +54,21 @@ func (t *Task) Run() error {
 	}
 	t.Infof("Get manifest from %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
 
-	if changed := t.destination.CheckManifestChanged(manifestBytes); changed {
-		// do nothing if manifest is not changed
-		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
-		return nil
-	}
-
-	thisManifestInfo, subManifestInfoSlice, err := GenerateManifestObj(manifestBytes, manifestType,
+	destManifestInfo, destManifestBytes, subManifestInfoSlice, err := GenerateManifestObj(manifestBytes, manifestType,
 		t.osFilterList, t.archFilterList, t.source, nil)
 	if err != nil {
 		return t.Errorf("Get manifest info from %s/%s:%s error: %v",
 			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
 	}
 
-	if thisManifestInfo == nil {
+	if changed := t.destination.CheckManifestChanged(destManifestBytes); !changed {
+		// do nothing if manifest is not changed
+		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+		return nil
+	}
+
+	if destManifestInfo == nil {
 		t.Infof("Skip synchronization from %s/%s:%s to %s/%s:%s, mismatch of os or architecture",
 			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
 			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
@@ -78,7 +78,7 @@ func (t *Task) Run() error {
 	var blobInfos []types.BlobInfo
 	if len(subManifestInfoSlice) == 0 {
 		// non-list type image
-		blobInfos, err = t.source.GetBlobInfos(thisManifestInfo.(manifest.Manifest))
+		blobInfos, err = t.source.GetBlobInfos(destManifestInfo.(manifest.Manifest))
 		if err != nil {
 			return t.Errorf("Get blob infos from %s/%s:%s error: %v",
 				t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
@@ -98,13 +98,7 @@ func (t *Task) Run() error {
 
 	// Push manifest list
 	if manifestType == manifest.DockerV2ListMediaType {
-		manifestSchemaListInfo := thisManifestInfo.(*manifest.Schema2List)
-
-		manifestBytes, err = manifestSchemaListInfo.Serialize()
-		if err != nil {
-			return err
-		}
-
+		manifestSchemaListInfo := destManifestInfo.(*manifest.Schema2List)
 		var subManifestByte []byte
 
 		// push manifest to destination
@@ -129,13 +123,7 @@ func (t *Task) Run() error {
 				manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
 		}
 	} else if manifestType == specsv1.MediaTypeImageIndex {
-		ociIndex := thisManifestInfo.(*manifest.OCI1Index)
-
-		manifestBytes, err = ociIndex.Serialize()
-		if err != nil {
-			return err
-		}
-
+		ociIndex := destManifestInfo.(*manifest.OCI1Index)
 		var subManifestByte []byte
 
 		// push manifest to destination
@@ -161,7 +149,7 @@ func (t *Task) Run() error {
 		}
 	}
 
-	if err := t.destination.PushManifest(manifestBytes); err != nil {
+	if err := t.destination.PushManifest(destManifestBytes); err != nil {
 		return t.Errorf("Put manifest to %s/%s:%s error: %v",
 			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
 	}

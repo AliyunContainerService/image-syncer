@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -95,30 +96,38 @@ func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 	return i.destination.PutManifest(i.ctx, manifestByte, nil)
 }
 
-// CheckManifestChanged checks if manifest of destination (tag) has changed, by manifest bytes or digest
+// CheckManifestChanged checks if manifest of destination (tag) has changed
 func (i *ImageDestination) CheckManifestChanged(newManifestByte []byte) bool {
+	// just use tag to get manifest
+	oldManifestByte := i.GetManifest(i.tag)
+
+	var a bytes.Buffer
+	_ = json.Compact(&a, oldManifestByte)
+
+	var b bytes.Buffer
+	_ = json.Compact(&b, newManifestByte)
+
+	return a.String() != b.String()
+}
+
+func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
 	var err error
 
 	// create source to check manifest
 	source, err := i.destinationRef.NewImageSource(i.ctx, i.sysctx)
 	if err != nil {
 		// if the source cannot be created, manifest not exist
-		return false
+		return nil
 	}
 
-	// just use tag to get manifest
-	tDigest := digest.Digest(i.tag)
+	tDigest := digest.Digest(tagOrDigest)
 	tManifestByte, _, err := source.GetManifest(i.ctx, &tDigest)
 	if err != nil {
 		// if error happens, it's considered that the manifest not exist
-		return false
+		return nil
 	}
 
-	if !bytes.Equal(tManifestByte, newManifestByte) {
-		return false
-	}
-
-	return true
+	return tManifestByte
 }
 
 // PutABlob push a blob to destination image
