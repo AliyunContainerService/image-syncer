@@ -1,8 +1,10 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -38,4 +40,14 @@ func gcpTokenFromCreds(creds string) (string, time.Time, error) {
 	}
 
 	return token.AccessToken, token.Expiry, nil
+}
+
+func manifestEqual(m1, m2 []byte) bool {
+	var a bytes.Buffer
+	_ = json.Compact(&a, m1)
+
+	var b bytes.Buffer
+	_ = json.Compact(&b, m2)
+
+	return a.String() == b.String()
 }

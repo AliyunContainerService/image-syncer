@@ -1,9 +1,7 @@
 package sync
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -100,14 +98,7 @@ func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 func (i *ImageDestination) CheckManifestChanged(newManifestByte []byte) bool {
 	// just use tag to get manifest
 	oldManifestByte := i.GetManifest(i.tag)
-
-	var a bytes.Buffer
-	_ = json.Compact(&a, oldManifestByte)
-
-	var b bytes.Buffer
-	_ = json.Compact(&b, newManifestByte)
-
-	return a.String() != b.String()
+	return !manifestEqual(oldManifestByte, newManifestByte)
 }
 
 func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
