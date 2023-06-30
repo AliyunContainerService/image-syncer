@@ -13,10 +13,10 @@ import (
 
 // ImageSource is a reference to a remote image need to be pulled.
 type ImageSource struct {
-	sourceRef types.ImageReference
-	source    types.ImageSource
-	ctx       context.Context
-	sysctx    *types.SystemContext
+	ref    types.ImageReference
+	source types.ImageSource
+	ctx    context.Context
+	sysctx *types.SystemContext
 
 	// source image description
 	registry   string
@@ -63,7 +63,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 
 	var source types.ImageSource
 	if tag != "" {
-		// if tag is empty, will attach to the "latest" tag, and will get a error if "latest" is not exist
+		// if tag is empty, will attach to the "latest" tag, and will get an error if "latest" is not exist
 		source, err = srcRef.NewImageSource(ctx, sysctx)
 		if err != nil {
 			return nil, err
@@ -71,7 +71,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		sourceRef:  srcRef,
+		ref:        srcRef,
 		source:     source,
 		ctx:        ctx,
 		sysctx:     sysctx,
@@ -90,19 +90,19 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 }
 
 // GetBlobInfos get blob infos from non-list type manifests.
-func (i *ImageSource) GetBlobInfos(manifestInfoSlice ...manifest.Manifest) ([]types.BlobInfo, error) {
+func (i *ImageSource) GetBlobInfos(manifestObjSlice ...manifest.Manifest) ([]types.BlobInfo, error) {
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specified a tag")
 	}
 	// get a Blobs
 	var srcBlobs []types.BlobInfo
-	for _, manifestInfo := range manifestInfoSlice {
-		blobInfos := manifestInfo.LayerInfos()
+	for _, manifestObj := range manifestObjSlice {
+		blobInfos := manifestObj.LayerInfos()
 		for _, l := range blobInfos {
 			srcBlobs = append(srcBlobs, l.BlobInfo)
 		}
 		// append config blob info
-		configBlob := manifestInfo.ConfigInfo()
+		configBlob := manifestObj.ConfigInfo()
 		if configBlob.Digest != "" {
 			srcBlobs = append(srcBlobs, configBlob)
 		}
@@ -138,5 +138,5 @@ func (i *ImageSource) GetTag() string {
 
 // GetSourceRepoTags gets all the tags of a repository which ImageSource belongs to
 func (i *ImageSource) GetSourceRepoTags() ([]string, error) {
-	return docker.GetRepositoryTags(i.ctx, i.sysctx, i.sourceRef)
+	return docker.GetRepositoryTags(i.ctx, i.sysctx, i.ref)
 }

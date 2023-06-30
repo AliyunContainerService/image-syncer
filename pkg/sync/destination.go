@@ -13,10 +13,10 @@ import (
 
 // ImageDestination is a reference of a remote image we will push to
 type ImageDestination struct {
-	destinationRef types.ImageReference
-	destination    types.ImageDestination
-	ctx            context.Context
-	sysctx         *types.SystemContext
+	ref         types.ImageReference
+	destination types.ImageDestination
+	ctx         context.Context
+	sysctx      *types.SystemContext
 
 	// destination image description
 	registry   string
@@ -79,13 +79,13 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	}
 
 	return &ImageDestination{
-		destinationRef: destRef,
-		destination:    destination,
-		ctx:            ctx,
-		sysctx:         sysctx,
-		registry:       registry,
-		repository:     repository,
-		tag:            tag,
+		ref:         destRef,
+		destination: destination,
+		ctx:         ctx,
+		sysctx:      sysctx,
+		registry:    registry,
+		repository:  repository,
+		tag:         tag,
 	}, nil
 }
 
@@ -94,18 +94,18 @@ func (i *ImageDestination) PushManifest(manifestByte []byte) error {
 	return i.destination.PutManifest(i.ctx, manifestByte, nil)
 }
 
-// CheckManifestChanged checks if manifest of destination (tag) has changed
-func (i *ImageDestination) CheckManifestChanged(newManifestByte []byte) bool {
+// CheckManifestChanged checks if manifest of destination (tag) has changed.
+func (i *ImageDestination) CheckManifestChanged(destManifestBytes []byte, tagOrDigest string) bool {
 	// just use tag to get manifest
-	oldManifestByte := i.GetManifest(i.tag)
-	return !manifestEqual(oldManifestByte, newManifestByte)
+	existManifestBytes := i.GetManifest(tagOrDigest)
+	return !manifestEqual(existManifestBytes, destManifestBytes)
 }
 
 func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
 	var err error
 
 	// create source to check manifest
-	source, err := i.destinationRef.NewImageSource(i.ctx, i.sysctx)
+	source, err := i.ref.NewImageSource(i.ctx, i.sysctx)
 	if err != nil {
 		// if the source cannot be created, manifest not exist
 		return nil

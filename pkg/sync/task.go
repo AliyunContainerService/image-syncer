@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
-	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,109 +53,84 @@ func (t *Task) Run() error {
 	}
 	t.Infof("Get manifest from %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
 
-	destManifestInfo, destManifestBytes, subManifestInfoSlice, err := GenerateManifestObj(manifestBytes, manifestType,
-		t.osFilterList, t.archFilterList, t.source, nil)
+	destManifestObj, destManifestBytes, subManifestInfoSlice, err := GenerateManifestObj(manifestBytes,
+		manifestType, t.osFilterList, t.archFilterList, t.source, nil)
 	if err != nil {
 		return t.Errorf("Get manifest info from %s/%s:%s error: %v",
 			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
 	}
 
-	if changed := t.destination.CheckManifestChanged(destManifestBytes); !changed {
-		// do nothing if manifest is not changed
-		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
-		return nil
-	}
-
-	if destManifestInfo == nil {
+	if destManifestObj == nil {
 		t.Infof("Skip synchronization from %s/%s:%s to %s/%s:%s, mismatch of os or architecture",
 			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
 			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 		return nil
 	}
 
-	var blobInfos []types.BlobInfo
 	if len(subManifestInfoSlice) == 0 {
 		// non-list type image
-		blobInfos, err = t.source.GetBlobInfos(destManifestInfo.(manifest.Manifest))
-		if err != nil {
-			return t.Errorf("Get blob infos from %s/%s:%s error: %v",
-				t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+		if err = t.SyncNonListTypeImageByManifest(destManifestObj, destManifestBytes, t.source.tag, t.destination.tag); err != nil {
+			return err
 		}
 	} else {
 		// list type image
-		blobInfos, err = t.source.GetBlobInfos(subManifestInfoSlice...)
-		if err != nil {
-			return t.Errorf("Get blob infos from %s/%s:%s error: %v",
-				t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+		if err = t.SyncListTypeImageByManifest(destManifestBytes, subManifestInfoSlice); err != nil {
+			return err
 		}
+	}
+
+	t.Infof("Synchronization successfully from %s/%s:%s to %s/%s:%s",
+		t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
+		t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+
+	return nil
+}
+
+func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfoSlice []*ManifestInfo) error {
+	// TODO: ignore list-type image if not changed
+	// Docker manifest list (and its tag) might still exist even it's deleted, we will always update it because we
+	// cannot make sure if it can be ignored.
+	for _, mfstInfo := range subManifestInfoSlice {
+		if err := t.SyncNonListTypeImageByManifest(mfstInfo.obj, mfstInfo.bytes,
+			mfstInfo.digest.String(), mfstInfo.digest.String()); err != nil {
+			return err
+		}
+	}
+
+	if err := t.destination.PushManifest(manifestBytes); err != nil {
+		return t.Errorf("Put list-type manifest to %s/%s:%s error: %v",
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+	}
+
+	return nil
+}
+
+func (t *Task) SyncNonListTypeImageByManifest(manifestObj interface{}, manifestBytes []byte,
+	srcTagOrDigest, dstTagOrDigest string) error {
+
+	fmt.Println(dstTagOrDigest)
+
+	if changed := t.destination.CheckManifestChanged(manifestBytes, dstTagOrDigest); !changed {
+		// do nothing if manifest is not changed
+		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
+			t.destination.GetRegistry(), t.destination.GetRepository(), dstTagOrDigest)
+		return nil
+	}
+
+	blobInfos, err := t.source.GetBlobInfos(manifestObj.(manifest.Manifest))
+	if err != nil {
+		return t.Errorf("Get blob infos from %s/%s:%s error: %v",
+			t.source.GetRegistry(), t.source.GetRepository(), srcTagOrDigest, err)
 	}
 
 	if err := t.SyncBlobs(blobInfos...); err != nil {
 		return fmt.Errorf("sync blob infos error: %v", err)
 	}
 
-	// Push manifest list
-	if manifestType == manifest.DockerV2ListMediaType {
-		manifestSchemaListInfo := destManifestInfo.(*manifest.Schema2List)
-		var subManifestByte []byte
-
-		// push manifest to destination
-		for _, manifestDescriptorElem := range manifestSchemaListInfo.Manifests {
-			t.Infof("Handle manifest OS:%s Architecture:%s ",
-				manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-
-			subManifestByte, _, err = t.source.source.GetManifest(t.source.ctx, &manifestDescriptorElem.Digest)
-			if err != nil {
-				return t.Errorf("Get manifest %v of OS:%s Architecture:%s for manifest list error: %v",
-					manifestDescriptorElem.Digest, manifestDescriptorElem.Platform.OS,
-					manifestDescriptorElem.Platform.Architecture, err)
-			}
-
-			if err := t.destination.PushManifest(subManifestByte); err != nil {
-				return t.Errorf("Put manifest to %s/%s:%s error: %v",
-					t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
-			}
-
-			t.Infof("Put manifest to %s/%s:%s os:%s arch:%s",
-				t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(),
-				manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-		}
-	} else if manifestType == specsv1.MediaTypeImageIndex {
-		ociIndex := destManifestInfo.(*manifest.OCI1Index)
-		var subManifestByte []byte
-
-		// push manifest to destination
-		for _, manifestDescriptorElem := range ociIndex.Manifests {
-			t.Infof("Handle manifest OS:%s Architecture:%s ",
-				manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-
-			subManifestByte, _, err = t.source.source.GetManifest(t.source.ctx, &manifestDescriptorElem.Digest)
-			if err != nil {
-				return t.Errorf("Get manifest %v of OS:%s Architecture:%s for manifest list error: %v",
-					manifestDescriptorElem.Digest, manifestDescriptorElem.Platform.OS,
-					manifestDescriptorElem.Platform.Architecture, err)
-			}
-
-			if err := t.destination.PushManifest(subManifestByte); err != nil {
-				return t.Errorf("Put manifest to %s/%s:%s error: %v",
-					t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
-			}
-
-			t.Infof("Put manifest to %s/%s:%s os:%s arch:%s",
-				t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(),
-				manifestDescriptorElem.Platform.OS, manifestDescriptorElem.Platform.Architecture)
-		}
-	}
-
-	if err := t.destination.PushManifest(destManifestBytes); err != nil {
+	if err := t.destination.PushManifest(manifestBytes); err != nil {
 		return t.Errorf("Put manifest to %s/%s:%s error: %v",
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+			t.destination.GetRegistry(), t.destination.GetRepository(), dstTagOrDigest, err)
 	}
-
-	t.Infof("Synchronization successfully from %s/%s:%s to %s/%s:%s",
-		t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
-		t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
 
 	return nil
 }
