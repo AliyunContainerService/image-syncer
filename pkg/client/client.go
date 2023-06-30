@@ -7,7 +7,7 @@ import (
 	sync2 "sync"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
+	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -174,7 +174,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("source url should not be empty")
 	}
 
-	sourceURL, err := tools.NewRepoURL(source)
+	sourceURL, err := utils.NewRepoURL(source)
 	if err != nil {
 		return nil, fmt.Errorf("url %s format error: %v", source, err)
 	}
@@ -189,7 +189,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		}
 	}
 
-	destURL, err := tools.NewRepoURL(destination)
+	destURL, err := utils.NewRepoURL(destination)
 	if err != nil {
 		return nil, fmt.Errorf("url %s format error: %v", destination, err)
 	}

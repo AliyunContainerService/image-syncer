@@ -108,8 +108,6 @@ func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfo
 func (t *Task) SyncNonListTypeImageByManifest(manifestObj interface{}, manifestBytes []byte,
 	srcTagOrDigest, dstTagOrDigest string) error {
 
-	fmt.Println(dstTagOrDigest)
-
 	if changed := t.destination.CheckManifestChanged(manifestBytes, dstTagOrDigest); !changed {
 		// do nothing if manifest is not changed
 		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",

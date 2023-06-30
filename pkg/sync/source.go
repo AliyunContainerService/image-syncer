@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
+	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -28,7 +28,7 @@ type ImageSource struct {
 // if username or password is empty, access to repository will be anonymous.
 // a repository string is the rest part of the images url except "tag" and "registry"
 func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
-	if tools.CheckIfIncludeTag(repository) {
+	if utils.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
 
@@ -53,7 +53,7 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), ctxKey{"ImageSource"}, repository)
+	ctx := context.WithValue(context.Background(), utils.CTXKey("ImageSource"), repository)
 	if username != "" && password != "" {
 		sysctx.DockerAuthConfig = &types.DockerAuthConfig{
 			Username: username,

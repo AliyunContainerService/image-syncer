@@ -1,11 +1,13 @@
 package sync
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/tools"
+	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -27,7 +29,7 @@ type ImageDestination struct {
 // NewImageDestination generates a ImageDestination by repository, the repository string must include "tag".
 // If username or password is empty, access to repository will be anonymous.
 func NewImageDestination(registry, repository, tag, username, password string, insecure bool) (*ImageDestination, error) {
-	if tools.CheckIfIncludeTag(repository) {
+	if utils.CheckIfIncludeTag(repository) {
 		return nil, fmt.Errorf("repository string should not include tag")
 	}
 
@@ -53,12 +55,12 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		sysctx = &types.SystemContext{}
 	}
 
-	ctx := context.WithValue(context.Background(), ctxKey{"ImageDestination"}, repository)
+	ctx := context.WithValue(context.Background(), utils.CTXKey("ImageDestination"), repository)
 	if username != "" && password != "" {
 		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
-		if isPermanentServiceAccountToken(registry, username) {
+		if utils.IsGCRPermanentServiceAccountToken(registry, username) {
 			fmt.Printf("Getting oauth2 token for %s...\n", username)
-			token, expiry, err := gcpTokenFromCreds(password)
+			token, expiry, err := utils.GCPTokenFromCreds(password)
 			if err != nil {
 				return nil, err
 			}
@@ -162,4 +164,14 @@ func (i *ImageDestination) GetRepository() string {
 // GetTag return the tag of a ImageDestination
 func (i *ImageDestination) GetTag() string {
 	return i.tag
+}
+
+func manifestEqual(m1, m2 []byte) bool {
+	var a bytes.Buffer
+	_ = json.Compact(&a, m1)
+
+	var b bytes.Buffer
+	_ = json.Compact(&b, m2)
+
+	return a.String() == b.String()
 }
