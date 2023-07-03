@@ -26,7 +26,7 @@ type ImageDestination struct {
 	tag        string
 }
 
-// NewImageDestination generates a ImageDestination by repository, the repository string must include "tag".
+// NewImageDestination generates an ImageDestination by repository, the repository string must include "tag".
 // If username or password is empty, access to repository will be anonymous.
 func NewImageDestination(registry, repository, tag, username, password string, insecure bool) (*ImageDestination, error) {
 	if utils.CheckIfIncludeTag(repository) {

@@ -15,7 +15,7 @@ var (
 	NoCache = none.NoCache
 )
 
-// Task act as a sync action, it will pull a images from source to destination
+// Task act as a sync action, it will pull images from source to destination
 type Task struct {
 	source      *ImageSource
 	destination *ImageDestination
