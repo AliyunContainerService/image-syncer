@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// The RepoURL will divide a images url to <registry>/<namespace>/<repo>:<tag>
+// The RepoURL will divide an images url to <registry>/<namespace>/<repo>:<tag>
 type RepoURL struct {
 	// origin url
 	url string
