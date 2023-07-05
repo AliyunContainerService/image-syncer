@@ -24,9 +24,13 @@ English | [简体中文](./README-zh_CN.md)
 
 ## Usage
 
+### GitHub Action
+
+You can use [image-sync-action](https://github.com/marketplace/actions/image-sync-action) to try image-syncer online without relying on any physical resources.
+
 ### Install image-syncer
 
-You can download latest binary release [here](https://github.com/AliyunContainerService/image-syncer/releases)
+You can download the latest binary release [here](https://github.com/AliyunContainerService/image-syncer/releases)
 
 ### Compile Manually
 
