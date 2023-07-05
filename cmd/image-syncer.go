@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/client"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +29,7 @@ var RootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,
-			defaultRegistry, defaultNamespace, osFilterList, archFilterList)
+			defaultRegistry, defaultNamespace, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList))
 		if err != nil {
 			return fmt.Errorf("init sync client error: %v", err)
 		}
@@ -48,8 +50,8 @@ func init() {
 		"default destination namespace when destination namespace is not given in the config file, can also be set with DEFAULT_NAMESPACE environment value")
 	RootCmd.PersistentFlags().IntVarP(&procNum, "proc", "p", 5, "numbers of working goroutines")
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
-	RootCmd.PersistentFlags().StringArrayVar(&osFilterList, "os", []string{}, "os list to filter source tags, not works for docker v2 schema1 media")
-	RootCmd.PersistentFlags().StringArrayVar(&archFilterList, "arch", []string{}, "architecture list to filter source tags")
+	RootCmd.PersistentFlags().StringArrayVar(&osFilterList, "os", []string{}, "os list to filter source tags, not works for docker v2 schema1 and OCI media")
+	RootCmd.PersistentFlags().StringArrayVar(&archFilterList, "arch", []string{}, "architecture list to filter source tags, not works for OCI media")
 }
 
 // Execute executes the RootCmd
