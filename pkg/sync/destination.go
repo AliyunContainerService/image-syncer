@@ -91,9 +91,11 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 	}, nil
 }
 
-// PushManifest push a manifest file to destination image
-func (i *ImageDestination) PushManifest(manifestByte []byte) error {
-	return i.destination.PutManifest(i.ctx, manifestByte, nil)
+// PushManifest push a manifest file to destination image.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to write the manifest for
+// (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
+func (i *ImageDestination) PushManifest(manifestByte []byte, instanceDigest *digest.Digest) error {
+	return i.destination.PutManifest(i.ctx, manifestByte, instanceDigest)
 }
 
 // CheckManifestChanged checks if manifest of destination (tag) has changed.

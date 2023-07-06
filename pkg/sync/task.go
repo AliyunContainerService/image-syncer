@@ -3,6 +3,8 @@ package sync
 import (
 	"fmt"
 
+	"github.com/opencontainers/go-digest"
+
 	"github.com/containers/image/v5/types"
 
 	"github.com/containers/image/v5/manifest"
@@ -69,7 +71,8 @@ func (t *Task) Run() error {
 
 	if len(subManifestInfoSlice) == 0 {
 		// non-list type image
-		if err = t.SyncNonListTypeImageByManifest(destManifestObj, destManifestBytes, t.source.tag, t.destination.tag); err != nil {
+		if err = t.SyncNonListTypeImageByManifest(destManifestObj, destManifestBytes,
+			t.source.tag, t.destination.tag, false); err != nil {
 			return err
 		}
 	} else {
@@ -92,12 +95,12 @@ func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfo
 	// cannot make sure if it can be ignored.
 	for _, mfstInfo := range subManifestInfoSlice {
 		if err := t.SyncNonListTypeImageByManifest(mfstInfo.obj, mfstInfo.bytes,
-			mfstInfo.digest.String(), mfstInfo.digest.String()); err != nil {
+			mfstInfo.digest.String(), mfstInfo.digest.String(), true); err != nil {
 			return err
 		}
 	}
 
-	if err := t.destination.PushManifest(manifestBytes); err != nil {
+	if err := t.destination.PushManifest(manifestBytes, nil); err != nil {
 		return t.Errorf("Put list-type manifest to %s/%s:%s error: %v",
 			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
 	}
@@ -106,7 +109,7 @@ func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfo
 }
 
 func (t *Task) SyncNonListTypeImageByManifest(manifestObj interface{}, manifestBytes []byte,
-	srcTagOrDigest, dstTagOrDigest string) error {
+	srcTagOrDigest, dstTagOrDigest string, belongsToList bool) error {
 
 	if changed := t.destination.CheckManifestChanged(manifestBytes, dstTagOrDigest); !changed {
 		// do nothing if manifest is not changed
@@ -125,7 +128,13 @@ func (t *Task) SyncNonListTypeImageByManifest(manifestObj interface{}, manifestB
 		return fmt.Errorf("sync blob infos error: %v", err)
 	}
 
-	if err := t.destination.PushManifest(manifestBytes); err != nil {
+	var instanceDigest *digest.Digest
+	if belongsToList {
+		tmp := digest.Digest(dstTagOrDigest)
+		instanceDigest = &tmp
+	}
+
+	if err := t.destination.PushManifest(manifestBytes, instanceDigest); err != nil {
 		return t.Errorf("Put manifest to %s/%s:%s error: %v",
 			t.destination.GetRegistry(), t.destination.GetRepository(), dstTagOrDigest, err)
 	}
