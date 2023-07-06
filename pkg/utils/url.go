@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+const (
+	DockerHubURL = "docker.io"
+)
+
 // The RepoURL will divide an images url to <registry>/<namespace>/<repo>:<tag>
 type RepoURL struct {
 	// origin url
@@ -56,7 +60,7 @@ func NewRepoURL(url string) (*RepoURL, error) {
 
 		return &RepoURL{
 			url:       url,
-			registry:  "registry.hub.docker.com",
+			registry:  DockerHubURL,
 			namespace: slice[0],
 			repo:      repo,
 			tag:       tag,
@@ -64,7 +68,7 @@ func NewRepoURL(url string) (*RepoURL, error) {
 	} else {
 		return &RepoURL{
 			url:       url,
-			registry:  "registry.hub.docker.com",
+			registry:  DockerHubURL,
 			namespace: "library",
 			repo:      repo,
 			tag:       tag,

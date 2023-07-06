@@ -32,7 +32,7 @@ func TestURL(t *testing.T) {
 	assert.Equal(t, "nginx", repoURLs[1].GetRepo())
 	assert.Equal(t, "library/nginx", repoURLs[1].GetRepoWithNamespace())
 	assert.Equal(t, "library", repoURLs[2].GetNamespace())
-	assert.Equal(t, "registry.hub.docker.com", repoURLs[2].GetRegistry())
+	assert.Equal(t, DockerHubURL, repoURLs[2].GetRegistry())
 	assert.Equal(t, "v1", repoURLs[2].GetTag())
 	assert.Equal(t, "127.0.0.1:300", repoURLs[3].GetRegistry())
 	assert.Equal(t, "127.0.0.1:300/library/nginx", repoURLs[3].GetURLWithoutTag())

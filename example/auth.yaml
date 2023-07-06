@@ -5,7 +5,7 @@ quay.io:
 registry.cn-beijing.aliyuncs.com:
   username: xxx
   password: xxxxxxxxx
-registry.hub.docker.com:
+docker.io:
   username: xxx
   password: xxxxxxxxxx
 quay.io/coreos:

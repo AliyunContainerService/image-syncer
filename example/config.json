@@ -9,7 +9,7 @@
             "username": "xxx",
             "password": "xxxxxxxxx"
         },
-        "registry.hub.docker.com": {
+        "docker.io": {
             "username": "xxx",
             "password": "xxxxxxxxxx"
         },

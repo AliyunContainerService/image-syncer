@@ -86,7 +86,7 @@ ACR(Ali Container Registry) 是阿里云提供的容器镜像服务，ACR企业�
         "username": "xxx",
         "password": "xxxxxxxxx"
     },
-    "registry.hub.docker.com": {
+    "docker.io": {
         "username": "xxx",
         "password": "xxxxxxxxxx"
     },

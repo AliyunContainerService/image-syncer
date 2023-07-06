@@ -77,7 +77,7 @@ Authentication file holds all the authentication information for each registry, 
         "username": "xxx",
         "password": "xxxxxxxxx"
     },
-    "registry.hub.docker.com": {
+    "docker.io": {
         "username": "xxx",
         "password": "xxxxxxxxxx"
     },
