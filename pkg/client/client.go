@@ -1,10 +1,10 @@
 package client
 
 import (
-	"container/list"
 	"fmt"
 	"strings"
-	sync2 "sync"
+
+	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
@@ -14,26 +14,20 @@ import (
 // Client describes a synchronization client
 type Client struct {
 	// a sync.Task list
-	taskList *list.List
+	taskList *concurrent.List
 
 	// a URLPair list
-	urlPairList *list.List
+	urlPairList *concurrent.List
 
 	// failed list
-	failedTaskList         *list.List
-	failedTaskGenerateList *list.List
+	failedTaskList         *concurrent.List
+	failedTaskGenerateList *concurrent.List
 
 	config *Config
 
 	routineNum int
 	retries    int
 	logger     *logrus.Logger
-
-	// mutex
-	taskListChan               chan int
-	urlPairListChan            chan int
-	failedTaskListChan         chan int
-	failedTaskGenerateListChan chan int
 }
 
 // URLPair is a pair of source and destination url
@@ -56,77 +50,20 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 	}
 
 	return &Client{
-		taskList:                   list.New(),
-		urlPairList:                list.New(),
-		failedTaskList:             list.New(),
-		failedTaskGenerateList:     list.New(),
-		config:                     config,
-		routineNum:                 routineNum,
-		retries:                    retries,
-		logger:                     logger,
-		taskListChan:               make(chan int, 1),
-		urlPairListChan:            make(chan int, 1),
-		failedTaskListChan:         make(chan int, 1),
-		failedTaskGenerateListChan: make(chan int, 1),
+		taskList:               concurrent.NewList(),
+		urlPairList:            concurrent.NewList(),
+		failedTaskList:         concurrent.NewList(),
+		failedTaskGenerateList: concurrent.NewList(),
+		config:                 config,
+		routineNum:             routineNum,
+		retries:                retries,
+		logger:                 logger,
 	}, nil
 }
 
 // Run is main function of a synchronization client
 func (c *Client) Run() {
 	fmt.Println("Start to generate sync tasks, please wait ...")
-
-	//var finishChan = make(chan struct{}, c.routineNum)
-
-	// open num of goroutines and wait c for close
-	openRoutinesGenTaskAndWaitForFinish := func() {
-		wg := sync2.WaitGroup{}
-		for i := 0; i < c.routineNum; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for {
-					urlPair, empty := c.GetAURLPair()
-					// no more task to generate
-					if empty {
-						break
-					}
-					moreURLPairs, err := c.GenerateSyncTask(urlPair.source, urlPair.destination)
-					if err != nil {
-						c.logger.Errorf("Generate sync task %s to %s error: %v", urlPair.source, urlPair.destination, err)
-						// put to failedTaskGenerateList
-						c.PutAFailedURLPair(urlPair)
-					}
-					if moreURLPairs != nil {
-						c.PutURLPairs(moreURLPairs)
-					}
-				}
-			}()
-		}
-		wg.Wait()
-	}
-
-	openRoutinesHandleTaskAndWaitForFinish := func() {
-		wg := sync2.WaitGroup{}
-		for i := 0; i < c.routineNum; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for {
-					task, empty := c.GetATask()
-					// no more tasks need to handle
-					if empty {
-						break
-					}
-					if err := task.Run(); err != nil {
-						// put to failedTaskList
-						c.PutAFailedTask(task)
-					}
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
 
 	for source, dest := range c.config.GetImageList() {
 		c.urlPairList.PushBack(&URLPair{
@@ -136,36 +73,74 @@ func (c *Client) Run() {
 	}
 
 	// generate sync tasks
-	openRoutinesGenTaskAndWaitForFinish()
+	c.openRoutinesGenTaskAndWaitForFinish()
 
 	fmt.Println("Start to handle sync tasks, please wait ...")
 
 	// generate goroutines to handle sync tasks
-	openRoutinesHandleTaskAndWaitForFinish()
+	c.openRoutinesHandleTaskAndWaitForFinish()
 
 	for times := 0; times < c.retries; times++ {
 		if c.failedTaskGenerateList.Len() != 0 {
 			c.urlPairList.PushBackList(c.failedTaskGenerateList)
-			c.failedTaskGenerateList.Init()
+			c.failedTaskGenerateList.Reset()
 			// retry to generate task
 			fmt.Println("Start to retry to generate sync tasks, please wait ...")
-			openRoutinesGenTaskAndWaitForFinish()
+			c.openRoutinesGenTaskAndWaitForFinish()
 		}
 
 		if c.failedTaskList.Len() != 0 {
 			c.taskList.PushBackList(c.failedTaskList)
-			c.failedTaskList.Init()
+			c.failedTaskList.Reset()
 		}
 
 		if c.taskList.Len() != 0 {
 			// retry to handle task
 			fmt.Println("Start to retry sync tasks, please wait ...")
-			openRoutinesHandleTaskAndWaitForFinish()
+			c.openRoutinesHandleTaskAndWaitForFinish()
 		}
 	}
 
 	fmt.Printf("Finished, %v sync tasks failed, %v tasks generate failed\n", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
 	c.logger.Infof("Finished, %v sync tasks failed, %v tasks generate failed", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
+}
+
+func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
+	concurrent.CreateRoutinesAndWaitForFinish(c.routineNum, func() {
+		for {
+			urlPair := c.urlPairList.PopFront()
+			// no more task to generate
+			if urlPair == nil {
+				break
+			}
+			moreURLPairs, err := c.GenerateSyncTask(urlPair.(*URLPair).source, urlPair.(*URLPair).destination)
+			if err != nil {
+				c.logger.Errorf("Generate sync task %s to %s error: %v",
+					urlPair.(*URLPair).source, urlPair.(*URLPair).destination, err)
+				// put to failedTaskGenerateList
+				c.failedTaskList.PushBack(urlPair)
+			}
+			if moreURLPairs != nil {
+				c.urlPairList.PushBack(moreURLPairs)
+			}
+		}
+	})
+}
+
+func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
+	concurrent.CreateRoutinesAndWaitForFinish(c.routineNum, func() {
+		for {
+			task := c.taskList.PopFront()
+			// no more tasks need to handle
+			if task == nil {
+				break
+			}
+			if err := task.(*sync.Task).Run(); err != nil {
+				// put to failedTaskList
+				c.taskList.PushBack(task)
+			}
+		}
+	})
 }
 
 // GenerateSyncTask creates synchronization tasks from source and destination url, return URLPair array if there are more than one tags
@@ -280,121 +255,7 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		}
 	}
 
-	c.PutATask(sync.NewTask(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList, c.logger))
+	c.taskList.PushBack(sync.NewTask(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList, c.logger))
 	c.logger.Infof("Generate a task for %s to %s", sourceURL.GetURL(), destURL.GetURL())
 	return nil, nil
-}
-
-// GetATask return a sync.Task struct if the task list is not empty
-func (c *Client) GetATask() (*sync.Task, bool) {
-	c.taskListChan <- 1
-	defer func() {
-		<-c.taskListChan
-	}()
-
-	task := c.taskList.Front()
-	if task == nil {
-		return nil, true
-	}
-	c.taskList.Remove(task)
-
-	return task.Value.(*sync.Task), false
-}
-
-// PutATask puts a sync.Task struct to task list
-func (c *Client) PutATask(task *sync.Task) {
-	c.taskListChan <- 1
-	defer func() {
-		<-c.taskListChan
-	}()
-
-	if c.taskList != nil {
-		c.taskList.PushBack(task)
-	}
-}
-
-// GetAURLPair gets a URLPair from urlPairList
-func (c *Client) GetAURLPair() (*URLPair, bool) {
-	c.urlPairListChan <- 1
-	defer func() {
-		<-c.urlPairListChan
-	}()
-
-	urlPair := c.urlPairList.Front()
-	if urlPair == nil {
-		return nil, true
-	}
-	c.urlPairList.Remove(urlPair)
-
-	return urlPair.Value.(*URLPair), false
-}
-
-// PutURLPairs puts a URLPair array to urlPairList
-func (c *Client) PutURLPairs(urlPairs []*URLPair) {
-	c.urlPairListChan <- 1
-	defer func() {
-		<-c.urlPairListChan
-	}()
-
-	if c.urlPairList != nil {
-		for _, urlPair := range urlPairs {
-			c.urlPairList.PushBack(urlPair)
-		}
-	}
-}
-
-// GetAFailedTask gets a failed task from failedTaskList
-func (c *Client) GetAFailedTask() (*sync.Task, bool) {
-	c.failedTaskListChan <- 1
-	defer func() {
-		<-c.failedTaskListChan
-	}()
-
-	failedTask := c.failedTaskList.Front()
-	if failedTask == nil {
-		return nil, true
-	}
-	c.failedTaskList.Remove(failedTask)
-
-	return failedTask.Value.(*sync.Task), false
-}
-
-// PutAFailedTask puts a failed task to failedTaskList
-func (c *Client) PutAFailedTask(failedTask *sync.Task) {
-	c.failedTaskListChan <- 1
-	defer func() {
-		<-c.failedTaskListChan
-	}()
-
-	if c.failedTaskList != nil {
-		c.failedTaskList.PushBack(failedTask)
-	}
-}
-
-// GetAFailedURLPair get a URLPair from failedTaskGenerateList
-func (c *Client) GetAFailedURLPair() (*URLPair, bool) {
-	c.failedTaskGenerateListChan <- 1
-	defer func() {
-		<-c.failedTaskGenerateListChan
-	}()
-
-	failedURLPair := c.failedTaskGenerateList.Front()
-	if failedURLPair == nil {
-		return nil, true
-	}
-	c.failedTaskGenerateList.Remove(failedURLPair)
-
-	return failedURLPair.Value.(*URLPair), false
-}
-
-// PutAFailedURLPair puts a URLPair to failedTaskGenerateList
-func (c *Client) PutAFailedURLPair(failedURLPair *URLPair) {
-	c.failedTaskGenerateListChan <- 1
-	defer func() {
-		<-c.failedTaskGenerateListChan
-	}()
-
-	if c.failedTaskGenerateList != nil {
-		c.failedTaskGenerateList.PushBack(failedURLPair)
-	}
 }
