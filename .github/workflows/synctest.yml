@@ -1,0 +1,26 @@
+name: synctest
+
+on:
+  push: { }
+  pull_request: { }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.after }}
+  cancel-in-progress: true
+
+jobs:
+  test_sync_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.20.4
+      - name: Build
+        run: make
+      - name: Run docker registry
+        run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+      - name: Run command
+        run: ./image-syncer --proc=6 --auth=./.github/workflows/config/test-auth.yml --images=./.github/workflows/config/test-images.yml

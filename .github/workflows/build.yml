@@ -13,7 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   codecov:
     runs-on: ubuntu-latest
     steps:
@@ -36,15 +35,3 @@ jobs:
           file: ./coverage.txt
           flags: unittests
           fail_ci_if_error: true
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.20.4
-
-      - name: Build
-        run: make
