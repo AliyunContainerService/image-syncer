@@ -112,15 +112,11 @@ func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
 			if urlPair == nil {
 				break
 			}
-			moreURLPairs, err := c.GenerateSyncTask(urlPair.(*URLPair).source, urlPair.(*URLPair).destination)
-			if err != nil {
+			if err := c.GenerateSyncTasks(urlPair.(*URLPair).source, urlPair.(*URLPair).destination); err != nil {
 				c.logger.Errorf("Generate sync task %s to %s error: %v",
 					urlPair.(*URLPair).source, urlPair.(*URLPair).destination, err)
 				// put to failedTaskGenerateList
 				c.failedTaskList.PushBack(urlPair)
-			}
-			if moreURLPairs != nil {
-				c.urlPairList.PushBack(moreURLPairs)
 			}
 		}
 	})
@@ -142,16 +138,16 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 	})
 }
 
-// GenerateSyncTask creates synchronization tasks from source and destination url, return URLPair array if there are more than one tags
-func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair, error) {
+// GenerateSyncTasks creates synchronization tasks from source and destination url
+func (c *Client) GenerateSyncTasks(source string, destination string) error {
 	if source == "" {
-		return nil, fmt.Errorf("source url should not be empty")
+		return fmt.Errorf("source url should not be empty")
 	}
 
 	// if source tag is not specific, get all tags of this source repo
 	sourceURLs, err := utils.GenerateRepoURLs(source, c.listAllTags)
 	if err != nil {
-		return nil, fmt.Errorf("source url %s format error: %v", source, err)
+		return fmt.Errorf("source url %s format error: %v", source, err)
 	}
 
 	// if dest is not specific, use default registry and repo
@@ -160,30 +156,29 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 			destination = c.config.defaultDestRegistry + "/" +
 				sourceURLs[0].GetRepo()
 		} else {
-			return nil, fmt.Errorf("the default registry and namespace should not be nil if you want to use them")
+			return fmt.Errorf("the default registry and namespace should not be nil if you want to use them")
 		}
 	}
 
-	// if destination tag is not specific, reuse tags of sourceURLs
-	destinationURLs, err := utils.GenerateRepoURLs(destination, func(registry, repository string) (tags []string, err error) {
+	// if destination tags or digest is not specific, reuse tags or digest of sourceURLs
+	destinationURLs, err := utils.GenerateRepoURLs(destination, func(registry, repository string) ([]string, error) {
 		var result []string
 		for _, item := range sourceURLs {
-			result = append(result, item.GetTag())
+			result = append(result, item.GetTagOrDigest())
 		}
 		return result, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("source url %s format error: %v", source, err)
+		return fmt.Errorf("source url %s format error: %v", source, err)
 	}
 
-	if len(sourceURLs) != len(destinationURLs) {
-		return nil, fmt.Errorf("the number of tags of source and destination is not matched: %s:%s",
-			source, destination)
+	if err = c.checkSourceAndDestinationURLs(sourceURLs, destinationURLs); err != nil {
+		return fmt.Errorf("failed to check source and destination urls for %s:%s: %v", source, destination, err)
 	}
 
 	tasks, err := c.generateTasks(sourceURLs, destinationURLs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate tasks: %v", err)
+		return fmt.Errorf("failed to generate tasks: %v", err)
 	}
 
 	for _, task := range tasks {
@@ -191,10 +186,25 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 	}
 
 	c.logger.Infof("Generate a task for %s to %s", source, destination)
-	return nil, nil
+	return nil
 }
 
-func (c *Client) listAllTags(registry, repository string) (tags []string, err error) {
+func (c *Client) checkSourceAndDestinationURLs(sourceURLs, destinationURLs []*utils.RepoURL) error {
+	if len(sourceURLs) != len(destinationURLs) {
+		return fmt.Errorf("the number of tags of source and destination is not matched")
+	}
+
+	// digest must be the same
+	if len(sourceURLs) == 1 && sourceURLs[0].HasDigest() && destinationURLs[0].HasDigest() {
+		if sourceURLs[0].GetTagOrDigest() != destinationURLs[0].GetTagOrDigest() {
+			return fmt.Errorf("the digest of source and destination must match")
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) listAllTags(registry, repository string) ([]string, error) {
 	auth, exist := c.config.GetAuth(registry + "/" + repository)
 	if exist {
 		c.logger.Infof("Find auth information for %v, username: %v", registry+"/"+repository, auth.Username)
@@ -212,25 +222,25 @@ func (c *Client) generateTasks(sourceURLs, destinationURLs []*utils.RepoURL) ([]
 	var result []*sync.Task
 	for index, s := range sourceURLs {
 
-		auth, exist := c.config.GetAuth(s.GetURLWithoutTag())
+		auth, exist := c.config.GetAuth(s.GetURLWithoutTagOrDigest())
 		if exist {
 			c.logger.Infof("Find auth information for %v, username: %v", s.String(), auth.Username)
 		}
 
-		imageSource, err := sync.NewImageSource(s.GetRegistry(), s.GetRepo(), s.GetTag(),
+		imageSource, err := sync.NewImageSource(s.GetRegistry(), s.GetRepo(), s.GetTagOrDigest(),
 			auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image source error: %v", s.String(), err)
 		}
 
-		auth, exist = c.config.GetAuth(destinationURLs[index].GetURLWithoutTag())
+		auth, exist = c.config.GetAuth(destinationURLs[index].GetURLWithoutTagOrDigest())
 		if exist {
 			c.logger.Infof("Find auth information for %v, username: %v", destinationURLs[index].String(), auth.Username)
 		}
 
 		imageDestination, err := sync.NewImageDestination(destinationURLs[index].GetRegistry(),
 			destinationURLs[index].GetRepo(),
-			destinationURLs[index].GetTag(), auth.Username, auth.Password, auth.Insecure)
+			destinationURLs[index].GetTagOrDigest(), auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
 			return nil, fmt.Errorf("generate %s image destination error: %v", destinationURLs[index].String(), err)
 		}

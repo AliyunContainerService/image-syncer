@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/containers/image/v5/docker"
@@ -19,26 +20,21 @@ type ImageSource struct {
 	sysctx *types.SystemContext
 
 	// source image description
-	registry   string
-	repository string
-	tag        string
+	registry    string
+	repository  string
+	tagOrDigest string
 }
 
-// NewImageSource generates a PullTask by repository, the repository string must include "tag",
-// if username or password is empty, access to repository will be anonymous.
-// a repository string is the rest part of the images url except "tag" and "registry"
-func NewImageSource(registry, repository, tag, username, password string, insecure bool) (*ImageSource, error) {
-	if utils.CheckIfIncludeTag(repository) {
-		return nil, fmt.Errorf("repository string should not include tag")
+// NewImageSource generates a PullTask by repository, the repository string must include tag or digest, or it can only be used
+// to list tags.
+// If username or password is empty, access to repository will be anonymous.
+// A repository string is the rest part of the images url except tag digest and registry
+func NewImageSource(registry, repository, tagOrDigest, username, password string, insecure bool) (*ImageSource, error) {
+	if strings.Contains(repository, ":") {
+		return nil, fmt.Errorf("repository string should not include ':'")
 	}
 
-	// tag may be empty
-	tagWithColon := ""
-	if tag != "" {
-		tagWithColon = ":" + tag
-	}
-
-	srcRef, err := docker.ParseReference("//" + registry + "/" + repository + tagWithColon)
+	srcRef, err := docker.ParseReference("//" + registry + "/" + repository + utils.AttachConnectorToTagOrDigest(tagOrDigest))
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +58,8 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	var source types.ImageSource
-	if tag != "" {
-		// if tag is empty, will attach to the "latest" tag, and will get an error if "latest" is not exist
+	if tagOrDigest != "" {
+		// if tagOrDigest is empty, will attach to the "latest" tag, and will get an error if "latest" is not exist
 		source, err = srcRef.NewImageSource(ctx, sysctx)
 		if err != nil {
 			return nil, err
@@ -71,20 +67,20 @@ func NewImageSource(registry, repository, tag, username, password string, insecu
 	}
 
 	return &ImageSource{
-		ref:        srcRef,
-		source:     source,
-		ctx:        ctx,
-		sysctx:     sysctx,
-		registry:   registry,
-		repository: repository,
-		tag:        tag,
+		ref:         srcRef,
+		source:      source,
+		ctx:         ctx,
+		sysctx:      sysctx,
+		registry:    registry,
+		repository:  repository,
+		tagOrDigest: tagOrDigest,
 	}, nil
 }
 
 // GetManifest get manifest file from source image
 func (i *ImageSource) GetManifest() ([]byte, string, error) {
 	if i.source == nil {
-		return nil, "", fmt.Errorf("cannot get manifest file without specified a tag")
+		return nil, "", fmt.Errorf("cannot get manifest file without specified a tag or digest")
 	}
 	return i.source.GetManifest(i.ctx, nil)
 }
@@ -92,7 +88,7 @@ func (i *ImageSource) GetManifest() ([]byte, string, error) {
 // GetBlobInfos get blob infos from non-list type manifests.
 func (i *ImageSource) GetBlobInfos(manifestObjSlice ...manifest.Manifest) ([]types.BlobInfo, error) {
 	if i.source == nil {
-		return nil, fmt.Errorf("cannot get blobs without specified a tag")
+		return nil, fmt.Errorf("cannot get blobs without specified a tag or digest")
 	}
 	// get a Blobs
 	var srcBlobs []types.BlobInfo
@@ -131,12 +127,13 @@ func (i *ImageSource) GetRepository() string {
 	return i.repository
 }
 
-// GetTag returns the tag of a ImageSource
-func (i *ImageSource) GetTag() string {
-	return i.tag
+// GetTagOrDigest returns the tag or digest a ImageSource
+func (i *ImageSource) GetTagOrDigest() string {
+	return i.tagOrDigest
 }
 
 // GetSourceRepoTags gets all the tags of a repository which ImageSource belongs to
 func (i *ImageSource) GetSourceRepoTags() ([]string, error) {
+	// this function still works out even the tagOrDigest is empty
 	return docker.GetRepositoryTags(i.ctx, i.sysctx, i.ref)
 }

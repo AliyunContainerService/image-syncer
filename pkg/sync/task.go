@@ -51,28 +51,28 @@ func (t *Task) Run() error {
 	manifestBytes, manifestType, err := t.source.GetManifest()
 	if err != nil {
 		return t.Errorf("Failed to get manifest from %s/%s:%s error: %v",
-			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest(), err)
 	}
-	t.Infof("Get manifest from %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
+	t.Infof("Get manifest from %s/%s:%s", t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest())
 
 	destManifestObj, destManifestBytes, subManifestInfoSlice, err := GenerateManifestObj(manifestBytes,
 		manifestType, t.osFilterList, t.archFilterList, t.source, nil)
 	if err != nil {
 		return t.Errorf("Get manifest info from %s/%s:%s error: %v",
-			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest(), err)
 	}
 
 	if destManifestObj == nil {
 		t.Infof("Skip synchronization from %s/%s:%s to %s/%s:%s, mismatch of os or architecture",
-			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+			t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest(),
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest())
 		return nil
 	}
 
 	if len(subManifestInfoSlice) == 0 {
 		// non-list type image
 		if err = t.SyncNonListTypeImageByManifest(destManifestObj, destManifestBytes,
-			t.source.tag, t.destination.tag, false); err != nil {
+			t.source.GetTagOrDigest(), t.destination.GetTagOrDigest(), false); err != nil {
 			return err
 		}
 	} else {
@@ -83,8 +83,8 @@ func (t *Task) Run() error {
 	}
 
 	t.Infof("Synchronization successfully from %s/%s:%s to %s/%s:%s",
-		t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(),
-		t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+		t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest(),
+		t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest())
 
 	return nil
 }
@@ -93,7 +93,7 @@ func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfo
 	if changed := t.destination.CheckManifestChanged(manifestBytes, ""); !changed {
 		// do nothing if manifest is unchanged
 		t.Infof("Dest manifest list %s/%s:%s is unchanged, will do nothing",
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest())
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfo
 
 	if err := t.destination.PushManifest(manifestBytes, nil); err != nil {
 		return t.Errorf("Put list-type manifest to %s/%s:%s error: %v",
-			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest(), err)
 	}
 
 	return nil
@@ -151,7 +151,7 @@ func (t *Task) SyncBlobs(blobInfos ...types.BlobInfo) error {
 		blobExist, err := t.destination.CheckBlobExist(b)
 		if err != nil {
 			return t.Errorf("Check blob %s(%v) to %s/%s:%s exist error: %v",
-				b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+				b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest(), err)
 		}
 
 		if !blobExist {
@@ -159,19 +159,19 @@ func (t *Task) SyncBlobs(blobInfos ...types.BlobInfo) error {
 			blob, size, err := t.source.GetABlob(b)
 			if err != nil {
 				return t.Errorf("Get blob %s(%v) from %s/%s:%s failed: %v",
-					b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag(), err)
+					b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest(), err)
 			}
 			t.Infof("Get a blob %s(%v) from %s/%s:%s success",
-				b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTag())
+				b.Digest, size, t.source.GetRegistry(), t.source.GetRepository(), t.source.GetTagOrDigest())
 
 			b.Size = size
 			// push a blob to destination
 			if err := t.destination.PutABlob(blob, b); err != nil {
 				return t.Errorf("Put blob %s(%v) to %s/%s:%s failed: %v",
-					b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag(), err)
+					b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest(), err)
 			}
 			t.Infof("Put blob %s(%v) to %s/%s:%s success",
-				b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+				b.Digest, b.Size, t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTagOrDigest())
 		} else {
 			// print the log of ignored blob
 			t.Infof("Blob %s(%v) has been pushed to %s, will not be pushed",

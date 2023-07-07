@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/containers/image/v5/docker"
@@ -21,26 +22,20 @@ type ImageDestination struct {
 	sysctx      *types.SystemContext
 
 	// destination image description
-	registry   string
-	repository string
-	tag        string
+	registry    string
+	repository  string
+	tagOrDigest string
 }
 
-// NewImageDestination generates an ImageDestination by repository, the repository string must include "tag".
+// NewImageDestination generates an ImageDestination by repository, the repository string must include tag or digest.
 // If username or password is empty, access to repository will be anonymous.
-func NewImageDestination(registry, repository, tag, username, password string, insecure bool) (*ImageDestination, error) {
-	if utils.CheckIfIncludeTag(repository) {
-		return nil, fmt.Errorf("repository string should not include tag")
+func NewImageDestination(registry, repository, tagOrDigest, username, password string, insecure bool) (*ImageDestination, error) {
+	if strings.Contains(repository, ":") {
+		return nil, fmt.Errorf("repository string should not include ':'")
 	}
 
-	// tag may be empty
-	tagWithColon := ""
-	if tag != "" {
-		tagWithColon = ":" + tag
-	}
-
-	// if tag is empty, will attach to the "latest" tag
-	destRef, err := docker.ParseReference("//" + registry + "/" + repository + tagWithColon)
+	// if tagOrDigest is empty, will attach to the "latest" tag
+	destRef, err := docker.ParseReference("//" + registry + "/" + repository + utils.AttachConnectorToTagOrDigest(tagOrDigest))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +82,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 		sysctx:      sysctx,
 		registry:    registry,
 		repository:  repository,
-		tag:         tag,
+		tagOrDigest: tagOrDigest,
 	}, nil
 }
 
@@ -98,24 +93,19 @@ func (i *ImageDestination) PushManifest(manifestByte []byte, instanceDigest *dig
 	return i.destination.PutManifest(i.ctx, manifestByte, instanceDigest)
 }
 
-// CheckManifestChanged checks if manifest of destination (tag) has changed.
+// CheckManifestChanged checks if manifest of specified tag or digest has changed.
 func (i *ImageDestination) CheckManifestChanged(destManifestBytes []byte, tagOrDigest string) bool {
-	// just use tag to get manifest
 	existManifestBytes := i.GetManifest(tagOrDigest)
 	return !manifestEqual(existManifestBytes, destManifestBytes)
 }
 
 func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
+	var err error
 	var srcRef types.ImageReference
 	var convertDigest *digest.Digest
 
 	if len(tagOrDigest) != 0 {
-		_, err := digest.Parse(tagOrDigest)
-		manifestURL := i.registry + "/" + i.repository + ":" + tagOrDigest
-		if err == nil {
-			// has digest
-			manifestURL = i.registry + "/" + i.repository + "@" + tagOrDigest
-		}
+		manifestURL := i.registry + "/" + i.repository + utils.AttachConnectorToTagOrDigest(tagOrDigest)
 
 		// create source to check manifest
 		srcRef, err = docker.ParseReference("//" + manifestURL)
@@ -183,9 +173,9 @@ func (i *ImageDestination) GetRepository() string {
 	return i.repository
 }
 
-// GetTag return the tag of a ImageDestination
-func (i *ImageDestination) GetTag() string {
-	return i.tag
+// GetTagOrDigest return the tag or digest of a ImageDestination
+func (i *ImageDestination) GetTagOrDigest() string {
+	return i.tagOrDigest
 }
 
 func manifestEqual(m1, m2 []byte) bool {
