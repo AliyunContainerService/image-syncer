@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,10 +26,8 @@ type Config struct {
 	archFilterList []string
 
 	// If the destination registry and namespace is not provided,
-	// the source image will be synchronized to defaultDestRegistry
-	// and defaultDestNamespace with origin repo name and tag.
-	defaultDestRegistry  string
-	defaultDestNamespace string
+	// the source image will be synchronized to defaultDestRegistry with origin repo name and tag.
+	defaultDestRegistry string
 }
 
 // Auth describes the authentication information of a registry
@@ -38,7 +38,7 @@ type Auth struct {
 }
 
 // NewSyncConfig creates a Config struct
-func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry, defaultDestNamespace string,
+func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry string,
 	osFilterList, archFilterList []string) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
@@ -67,7 +67,6 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry,
 		}
 	}
 
-	config.defaultDestNamespace = defaultDestNamespace
 	config.defaultDestRegistry = defaultDestRegistry
 	config.osFilterList = osFilterList
 	config.archFilterList = archFilterList
@@ -108,15 +107,20 @@ func openAndDecode(filePath string, target interface{}) error {
 }
 
 // GetAuth gets the authentication information in Config
-func (c *Config) GetAuth(registry string, namespace string) (Auth, bool) {
-	// key of each AuthList item can be "registry/namespace" or "registry" only
-	registryAndNamespace := registry + "/" + namespace
+func (c *Config) GetAuth(repository string) (Auth, bool) {
+	auth := Auth{}
+	prefixLen := 0
+	exist := false
 
-	if moreSpecificAuth, exist := c.AuthList[registryAndNamespace]; exist {
-		return moreSpecificAuth, exist
+	for key, value := range c.AuthList {
+		if matched := utils.RepoMathPrefix(repository, key); matched {
+			if len(key) > prefixLen {
+				auth = value
+				exist = true
+			}
+		}
 	}
 
-	auth, exist := c.AuthList[registry]
 	return auth, exist
 }
 

@@ -57,7 +57,7 @@ func NewImageDestination(registry, repository, tag, username, password string, i
 
 	ctx := context.WithValue(context.Background(), utils.CTXKey("ImageDestination"), repository)
 	if username != "" && password != "" {
-		fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
+		//fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
 		if utils.IsGCRPermanentServiceAccountToken(registry, username) {
 			fmt.Printf("Getting oauth2 token for %s...\n", username)
 			token, expiry, err := utils.GCPTokenFromCreds(password)

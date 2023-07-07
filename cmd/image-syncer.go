@@ -29,7 +29,7 @@ var RootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,
-			defaultRegistry, defaultNamespace, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList))
+			defaultRegistry, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList))
 		if err != nil {
 			return fmt.Errorf("init sync client error: %v", err)
 		}

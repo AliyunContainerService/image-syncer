@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 
@@ -38,13 +37,13 @@ type URLPair struct {
 
 // NewSyncClient creates a synchronization client
 func NewSyncClient(configFile, authFile, imageFile, logFile string,
-	routineNum, retries int, defaultDestRegistry, defaultDestNamespace string,
+	routineNum, retries int, defaultDestRegistry string,
 	osFilterList, archFilterList []string) (*Client, error) {
 
 	logger := NewFileLogger(logFile)
 
 	config, err := NewSyncConfig(configFile, authFile, imageFile,
-		defaultDestRegistry, defaultDestNamespace, osFilterList, archFilterList)
+		defaultDestRegistry, osFilterList, archFilterList)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -149,113 +148,95 @@ func (c *Client) GenerateSyncTask(source string, destination string) ([]*URLPair
 		return nil, fmt.Errorf("source url should not be empty")
 	}
 
-	sourceURL, err := utils.NewRepoURL(source)
+	// if source tag is not specific, get all tags of this source repo
+	sourceURLs, err := utils.GenerateRepoURLs(source, c.listAllTags)
 	if err != nil {
-		return nil, fmt.Errorf("url %s format error: %v", source, err)
+		return nil, fmt.Errorf("source url %s format error: %v", source, err)
 	}
 
-	// if dest is not specific, use default registry and namespace
+	// if dest is not specific, use default registry and repo
 	if destination == "" {
-		if c.config.defaultDestRegistry != "" && c.config.defaultDestNamespace != "" {
-			destination = c.config.defaultDestRegistry + "/" + c.config.defaultDestNamespace + "/" +
-				sourceURL.GetRepoWithTag()
+		if c.config.defaultDestRegistry != "" {
+			destination = c.config.defaultDestRegistry + "/" +
+				sourceURLs[0].GetRepo()
 		} else {
 			return nil, fmt.Errorf("the default registry and namespace should not be nil if you want to use them")
 		}
 	}
 
-	destURL, err := utils.NewRepoURL(destination)
+	// if destination tag is not specific, reuse tags of sourceURLs
+	destinationURLs, err := utils.GenerateRepoURLs(destination, func(registry, repository string) (tags []string, err error) {
+		var result []string
+		for _, item := range sourceURLs {
+			result = append(result, item.GetTag())
+		}
+		return result, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("url %s format error: %v", destination, err)
+		return nil, fmt.Errorf("source url %s format error: %v", source, err)
 	}
 
-	tags := sourceURL.GetTag()
-
-	// multi-tags config
-	if moreTag := strings.Split(tags, ","); len(moreTag) > 1 {
-		if destURL.GetTag() != "" && destURL.GetTag() != sourceURL.GetTag() {
-			return nil, fmt.Errorf("multi-tags source should not correspond to a destination with tag: %s:%s",
-				sourceURL.GetURL(), destURL.GetURL())
-		}
-
-		// contains more than one tag
-		var urlPairs []*URLPair
-		for _, t := range moreTag {
-			urlPairs = append(urlPairs, &URLPair{
-				source:      sourceURL.GetURLWithoutTag() + ":" + t,
-				destination: destURL.GetURLWithoutTag() + ":" + t,
-			})
-		}
-
-		return urlPairs, nil
+	if len(sourceURLs) != len(destinationURLs) {
+		return nil, fmt.Errorf("the number of tags of source and destination is not matched: %s:%s",
+			source, destination)
 	}
 
-	var imageSource *sync.ImageSource
-	var imageDestination *sync.ImageDestination
+	tasks, err := c.generateTasks(sourceURLs, destinationURLs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tasks: %v", err)
+	}
 
-	if auth, exist := c.config.GetAuth(sourceURL.GetRegistry(), sourceURL.GetNamespace()); exist {
-		c.logger.Infof("Find auth information for %v, username: %v", sourceURL.GetURL(), auth.Username)
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(),
+	for _, task := range tasks {
+		c.taskList.PushBack(task)
+	}
+
+	c.logger.Infof("Generate a task for %s to %s", source, destination)
+	return nil, nil
+}
+
+func (c *Client) listAllTags(registry, repository string) (tags []string, err error) {
+	auth, exist := c.config.GetAuth(registry + "/" + repository)
+	if exist {
+		c.logger.Infof("Find auth information for %v, username: %v", registry+"/"+repository, auth.Username)
+	}
+	imageSource, err := sync.NewImageSource(registry, repository, "",
+		auth.Username, auth.Password, auth.Insecure)
+	if err != nil {
+		return nil, fmt.Errorf("generate %s image source error: %v", registry+"/"+repository, err)
+	}
+
+	return imageSource.GetSourceRepoTags()
+}
+
+func (c *Client) generateTasks(sourceURLs, destinationURLs []*utils.RepoURL) ([]*sync.Task, error) {
+	var result []*sync.Task
+	for index, s := range sourceURLs {
+
+		auth, exist := c.config.GetAuth(s.GetURLWithoutTag())
+		if exist {
+			c.logger.Infof("Find auth information for %v, username: %v", s.String(), auth.Username)
+		}
+
+		imageSource, err := sync.NewImageSource(s.GetRegistry(), s.GetRepo(), s.GetTag(),
 			auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
-			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
+			return nil, fmt.Errorf("generate %s image source error: %v", s.String(), err)
 		}
-	} else {
-		c.logger.Infof("Cannot find auth information for %v, pull actions will be anonymous", sourceURL.GetURL())
-		imageSource, err = sync.NewImageSource(sourceURL.GetRegistry(), sourceURL.GetRepoWithNamespace(), sourceURL.GetTag(),
-			"", "", false)
+
+		auth, exist = c.config.GetAuth(destinationURLs[index].GetURLWithoutTag())
+		if exist {
+			c.logger.Infof("Find auth information for %v, username: %v", destinationURLs[index].String(), auth.Username)
+		}
+
+		imageDestination, err := sync.NewImageDestination(destinationURLs[index].GetRegistry(),
+			destinationURLs[index].GetRepo(),
+			destinationURLs[index].GetTag(), auth.Username, auth.Password, auth.Insecure)
 		if err != nil {
-			return nil, fmt.Errorf("generate %s image source error: %v", sourceURL.GetURL(), err)
+			return nil, fmt.Errorf("generate %s image destination error: %v", destinationURLs[index].String(), err)
 		}
+
+		result = append(result, sync.NewTask(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList, c.logger))
 	}
 
-	// if tag is not specific, return tags
-	if sourceURL.GetTag() == "" {
-		if destURL.GetTag() != "" {
-			return nil, fmt.Errorf("tag should be included both side of the config: %s:%s", sourceURL.GetURL(), destURL.GetURL())
-		}
-
-		// get all tags of this source repo
-		tags, err := imageSource.GetSourceRepoTags()
-		if err != nil {
-			return nil, fmt.Errorf("get tags failed from %s error: %v", sourceURL.GetURL(), err)
-		}
-		c.logger.Infof("Get tags of %s successfully: %v", sourceURL.GetURL(), tags)
-
-		// generate url pairs for tags
-		var urlPairs = []*URLPair{}
-		for _, tag := range tags {
-			urlPairs = append(urlPairs, &URLPair{
-				source:      sourceURL.GetURL() + ":" + tag,
-				destination: destURL.GetURL() + ":" + tag,
-			})
-		}
-		return urlPairs, nil
-	}
-
-	// if source tag is set but without destination tag, use the same tag as source
-	destTag := destURL.GetTag()
-	if destTag == "" {
-		destTag = sourceURL.GetTag()
-	}
-
-	if auth, exist := c.config.GetAuth(destURL.GetRegistry(), destURL.GetNamespace()); exist {
-		c.logger.Infof("Find auth information for %v, username: %v", destURL.GetURL(), auth.Username)
-		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(),
-			destTag, auth.Username, auth.Password, auth.Insecure)
-		if err != nil {
-			return nil, fmt.Errorf("generate %s image destination error: %v", sourceURL.GetURL(), err)
-		}
-	} else {
-		c.logger.Infof("Cannot find auth information for %v, push actions will be anonymous", destURL.GetURL())
-		imageDestination, err = sync.NewImageDestination(destURL.GetRegistry(), destURL.GetRepoWithNamespace(),
-			destTag, "", "", false)
-		if err != nil {
-			return nil, fmt.Errorf("generate %s image destination error: %v", destURL.GetURL(), err)
-		}
-	}
-
-	c.taskList.PushBack(sync.NewTask(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList, c.logger))
-	c.logger.Infof("Generate a task for %s to %s", sourceURL.GetURL(), destURL.GetURL())
-	return nil, nil
+	return result, nil
 }
