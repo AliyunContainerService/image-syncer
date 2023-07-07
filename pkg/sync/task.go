@@ -90,9 +90,13 @@ func (t *Task) Run() error {
 }
 
 func (t *Task) SyncListTypeImageByManifest(manifestBytes []byte, subManifestInfoSlice []*ManifestInfo) error {
-	// TODO: ignore list-type image if not changed
-	// Docker manifest list (and its tag) might still exist even it's deleted, we will always update it because we
-	// cannot make sure if it can be ignored.
+	if changed := t.destination.CheckManifestChanged(manifestBytes, ""); !changed {
+		// do nothing if manifest is unchanged
+		t.Infof("Dest manifest list %s/%s:%s is unchanged, will do nothing",
+			t.destination.GetRegistry(), t.destination.GetRepository(), t.destination.GetTag())
+		return nil
+	}
+
 	for _, mfstInfo := range subManifestInfoSlice {
 		if err := t.SyncNonListTypeImageByManifest(mfstInfo.obj, mfstInfo.bytes,
 			mfstInfo.digest.String(), mfstInfo.digest.String(), true); err != nil {
@@ -112,8 +116,8 @@ func (t *Task) SyncNonListTypeImageByManifest(manifestObj interface{}, manifestB
 	srcTagOrDigest, dstTagOrDigest string, belongsToList bool) error {
 
 	if changed := t.destination.CheckManifestChanged(manifestBytes, dstTagOrDigest); !changed {
-		// do nothing if manifest is not changed
-		t.Infof("Dest manifest %s/%s:%s is not changed, will do nothing",
+		// do nothing if manifest is unchanged
+		t.Infof("Dest manifest %s/%s:%s is unchanged, will do nothing",
 			t.destination.GetRegistry(), t.destination.GetRepository(), dstTagOrDigest)
 		return nil
 	}

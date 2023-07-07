@@ -106,17 +106,37 @@ func (i *ImageDestination) CheckManifestChanged(destManifestBytes []byte, tagOrD
 }
 
 func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
-	var err error
+	var srcRef types.ImageReference
+	var convertDigest *digest.Digest
 
-	// create source to check manifest
-	source, err := i.ref.NewImageSource(i.ctx, i.sysctx)
+	if len(tagOrDigest) != 0 {
+		_, err := digest.Parse(tagOrDigest)
+		manifestURL := i.registry + "/" + i.repository + ":" + tagOrDigest
+		if err == nil {
+			// has digest
+			manifestURL = i.registry + "/" + i.repository + "@" + tagOrDigest
+		}
+
+		// create source to check manifest
+		srcRef, err = docker.ParseReference("//" + manifestURL)
+		if err != nil {
+			return nil
+		}
+
+		tmp := digest.Digest(tagOrDigest)
+		convertDigest = &tmp
+	} else {
+		srcRef = i.ref
+	}
+
+	source, err := srcRef.NewImageSource(i.ctx, i.sysctx)
 	if err != nil {
 		// if the source cannot be created, manifest not exist
 		return nil
 	}
 
-	tDigest := digest.Digest(tagOrDigest)
-	tManifestByte, _, err := source.GetManifest(i.ctx, &tDigest)
+	// if tagOrDigest is empty, convertDigest will be nil
+	tManifestByte, _, err := source.GetManifest(i.ctx, convertDigest)
 	if err != nil {
 		// if error happens, it's considered that the manifest not exist
 		return nil
