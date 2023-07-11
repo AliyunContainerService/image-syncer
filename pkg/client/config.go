@@ -130,7 +130,6 @@ func (c *Config) GetImageList() map[string]string {
 }
 
 func expandEnv(authMap map[string]Auth) map[string]Auth {
-
 	result := make(map[string]Auth)
 
 	for registry, auth := range authMap {

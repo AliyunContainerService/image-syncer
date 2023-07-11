@@ -90,7 +90,7 @@ func (i *ImageSource) GetBlobInfos(manifestObjSlice ...manifest.Manifest) ([]typ
 	if i.source == nil {
 		return nil, fmt.Errorf("cannot get blobs without specified a tag or digest")
 	}
-	// get a Blobs
+
 	var srcBlobs []types.BlobInfo
 	for _, manifestObj := range manifestObjSlice {
 		blobInfos := manifestObj.LayerInfos()
@@ -130,6 +130,10 @@ func (i *ImageSource) GetRepository() string {
 // GetTagOrDigest returns the tag or digest a ImageSource
 func (i *ImageSource) GetTagOrDigest() string {
 	return i.tagOrDigest
+}
+
+func (i *ImageSource) String() string {
+	return i.registry + "/" + i.repository + utils.AttachConnectorToTagOrDigest(i.tagOrDigest)
 }
 
 // GetSourceRepoTags gets all the tags of a repository which ImageSource belongs to

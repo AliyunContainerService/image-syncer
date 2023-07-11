@@ -40,6 +40,15 @@ func (l *List) PushBack(value any) {
 	l.items.PushBack(value)
 }
 
+func (l *List) PushFront(value any) {
+	l.c <- struct{}{}
+	defer func() {
+		<-l.c
+	}()
+
+	l.items.PushFront(value)
+}
+
 func (l *List) PushBackList(other *List) {
 	l.c <- struct{}{}
 	defer func() {

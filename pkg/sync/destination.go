@@ -8,6 +8,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/containers/image/v5/manifest"
+	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
@@ -94,27 +97,23 @@ func (i *ImageDestination) PushManifest(manifestByte []byte, instanceDigest *dig
 }
 
 // CheckManifestChanged checks if manifest of specified tag or digest has changed.
-func (i *ImageDestination) CheckManifestChanged(destManifestBytes []byte, tagOrDigest string) bool {
-	existManifestBytes := i.GetManifest(tagOrDigest)
+func (i *ImageDestination) CheckManifestChanged(destManifestBytes []byte, instanceDigest *digest.Digest) bool {
+	existManifestBytes := i.GetManifest(instanceDigest)
 	return !manifestEqual(existManifestBytes, destManifestBytes)
 }
 
-func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
+func (i *ImageDestination) GetManifest(instanceDigest *digest.Digest) []byte {
 	var err error
 	var srcRef types.ImageReference
-	var convertDigest *digest.Digest
 
-	if len(tagOrDigest) != 0 {
-		manifestURL := i.registry + "/" + i.repository + utils.AttachConnectorToTagOrDigest(tagOrDigest)
+	if instanceDigest != nil {
+		manifestURL := i.registry + "/" + i.repository + utils.AttachConnectorToTagOrDigest(instanceDigest.String())
 
 		// create source to check manifest
 		srcRef, err = docker.ParseReference("//" + manifestURL)
 		if err != nil {
 			return nil
 		}
-
-		tmp := digest.Digest(tagOrDigest)
-		convertDigest = &tmp
 	} else {
 		srcRef = i.ref
 	}
@@ -125,11 +124,41 @@ func (i *ImageDestination) GetManifest(tagOrDigest string) []byte {
 		return nil
 	}
 
-	// if tagOrDigest is empty, convertDigest will be nil
-	tManifestByte, _, err := source.GetManifest(i.ctx, convertDigest)
+	tManifestByte, mineType, err := source.GetManifest(i.ctx, instanceDigest)
 	if err != nil {
 		// if error happens, it's considered that the manifest not exist
 		return nil
+	}
+
+	// only for manifest list
+	switch mineType {
+	case manifest.DockerV2ListMediaType:
+		manifestSchemaListObj, err := manifest.Schema2ListFromManifest(tManifestByte)
+		if err != nil {
+			return nil
+		}
+
+		for _, manifestDescriptorElem := range manifestSchemaListObj.Manifests {
+			mfstBytes := i.GetManifest(&manifestDescriptorElem.Digest)
+			if mfstBytes == nil {
+				// cannot find sub manifest, manifest list not exist
+				return nil
+			}
+		}
+
+	case specsv1.MediaTypeImageIndex:
+		ociIndexesObj, err := manifest.OCI1IndexFromManifest(tManifestByte)
+		if err != nil {
+			return nil
+		}
+
+		for _, manifestDescriptorElem := range ociIndexesObj.Manifests {
+			mfstBytes := i.GetManifest(&manifestDescriptorElem.Digest)
+			if mfstBytes == nil {
+				// cannot find sub manifest, manifest list not exist
+				return nil
+			}
+		}
 	}
 
 	return tManifestByte
@@ -176,6 +205,10 @@ func (i *ImageDestination) GetRepository() string {
 // GetTagOrDigest return the tag or digest of a ImageDestination
 func (i *ImageDestination) GetTagOrDigest() string {
 	return i.tagOrDigest
+}
+
+func (i *ImageDestination) String() string {
+	return i.registry + "/" + i.repository + utils.AttachConnectorToTagOrDigest(i.tagOrDigest)
 }
 
 func manifestEqual(m1, m2 []byte) bool {

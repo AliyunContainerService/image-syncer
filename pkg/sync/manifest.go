@@ -13,13 +13,13 @@ import (
 )
 
 type ManifestInfo struct {
-	obj    manifest.Manifest
-	digest digest.Digest
+	Obj    manifest.Manifest
+	Digest *digest.Digest
 
 	// (manifest.Manifest).Serialize() does not in general reproduce the original blob if this object was loaded from one,
 	// even if no modifications were made! Non-list type image seems cannot use the result to push to dest
 	// repo while it is a part of list-type image.
-	bytes []byte
+	Bytes []byte
 }
 
 // GenerateManifestObj returns a new manifest object along with its byte serialization, and a sub manifest object array,
@@ -87,7 +87,7 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 
 		var filteredDescriptors []manifest.Schema2ManifestDescriptor
 
-		for _, manifestDescriptorElem := range manifestSchemaListObj.Manifests {
+		for index, manifestDescriptorElem := range manifestSchemaListObj.Manifests {
 			// select os and arch
 			if !platformValidate(osFilterList, archFilterList, &manifestDescriptorElem.Platform) {
 				continue
@@ -108,9 +108,11 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 
 			if subManifest != nil {
 				subManifestInfoSlice = append(subManifestInfoSlice, &ManifestInfo{
-					obj:    subManifest.(manifest.Manifest),
-					digest: manifestDescriptorElem.Digest,
-					bytes:  mfstBytes,
+					Obj: subManifest.(manifest.Manifest),
+
+					// cannot use &manifestDescriptorElem.Digest here, because manifestDescriptorElem is a fixed copy object
+					Digest: &manifestSchemaListObj.Manifests[index].Digest,
+					Bytes:  mfstBytes,
 				})
 			}
 		}
@@ -138,7 +140,7 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 
 		var filteredDescriptors []specsv1.Descriptor
 
-		for _, descriptor := range ociIndexesObj.Manifests {
+		for index, descriptor := range ociIndexesObj.Manifests {
 			// select os and arch
 			if !platformValidate(osFilterList, archFilterList, &manifest.Schema2PlatformSpec{
 				Architecture: descriptor.Platform.Architecture,
@@ -163,9 +165,11 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 
 			if subManifest != nil {
 				subManifestInfoSlice = append(subManifestInfoSlice, &ManifestInfo{
-					obj:    subManifest.(manifest.Manifest),
-					digest: descriptor.Digest,
-					bytes:  mfstBytes,
+					Obj: subManifest.(manifest.Manifest),
+
+					// cannot use &descriptor.Digest here, because descriptor is a fixed copy object
+					Digest: &ociIndexesObj.Manifests[index].Digest,
+					Bytes:  mfstBytes,
 				})
 			}
 		}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/client"
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/client"
 	"github.com/spf13/cobra"
 )
 
