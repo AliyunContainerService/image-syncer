@@ -18,7 +18,13 @@ type Client struct {
 	failedTaskList *concurrent.List
 
 	urlPairList                   *concurrent.List
-	failedTaskGenerateUrlPairList *concurrent.List
+	failedGenerateTaskUrlPairList *concurrent.List
+
+	taskCounter         *concurrent.Counter
+	generateTaskCounter *concurrent.Counter
+
+	failedTaskCounter         *concurrent.Counter
+	failedGenerateTaskCounter *concurrent.Counter
 
 	config *Config
 
@@ -31,6 +37,10 @@ type Client struct {
 type URLPair struct {
 	source      string
 	destination string
+}
+
+func (u *URLPair) String() string {
+	return u.source + "->" + u.destination
 }
 
 // NewSyncClient creates a synchronization client
@@ -50,7 +60,11 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 		taskList:                      concurrent.NewList(),
 		urlPairList:                   concurrent.NewList(),
 		failedTaskList:                concurrent.NewList(),
-		failedTaskGenerateUrlPairList: concurrent.NewList(),
+		failedGenerateTaskUrlPairList: concurrent.NewList(),
+		generateTaskCounter:           concurrent.NewCounter(0, 0),
+		failedGenerateTaskCounter:     concurrent.NewCounter(0, 0),
+		taskCounter:                   concurrent.NewCounter(0, 0),
+		failedTaskCounter:             concurrent.NewCounter(0, 0),
 		config:                        config,
 		routineNum:                    routineNum,
 		retries:                       retries,
@@ -59,7 +73,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 }
 
 // Run is main function of a synchronization client
-func (c *Client) Run() {
+func (c *Client) Run() error {
 	c.logger.Infof("Start to generate sync tasks, please wait ...")
 
 	for source, dest := range c.config.GetImageList() {
@@ -67,6 +81,7 @@ func (c *Client) Run() {
 			source:      source,
 			destination: dest,
 		})
+		c.generateTaskCounter.IncreaseTotal()
 	}
 
 	// generate sync tasks
@@ -78,9 +93,13 @@ func (c *Client) Run() {
 	c.openRoutinesHandleTaskAndWaitForFinish()
 
 	for times := 0; times < c.retries; times++ {
-		if c.failedTaskGenerateUrlPairList.Len() != 0 {
-			c.urlPairList.PushBackList(c.failedTaskGenerateUrlPairList)
-			c.failedTaskGenerateUrlPairList.Reset()
+		c.taskCounter, c.failedTaskCounter = c.failedTaskCounter, concurrent.NewCounter(0, 0)
+		c.generateTaskCounter, c.failedGenerateTaskCounter = c.failedGenerateTaskCounter,
+			concurrent.NewCounter(0, 0)
+
+		if c.failedGenerateTaskUrlPairList.Len() != 0 {
+			c.urlPairList.PushBackList(c.failedGenerateTaskUrlPairList)
+			c.failedGenerateTaskUrlPairList.Reset()
 
 			// retry to generate task
 			c.logger.Infof("Start to retry to generate sync tasks, please wait ...")
@@ -99,8 +118,18 @@ func (c *Client) Run() {
 		}
 	}
 
-	c.logger.Infof("Finished, %v sync tasks failed, %v tasks generate failed\n",
-		c.failedTaskList.Len(), c.failedTaskGenerateUrlPairList.Len())
+	endMsg := fmt.Sprintf("Finished, %v tasks failed, %v rules failed to be generated to tasks",
+		c.failedTaskList.Len(), c.failedGenerateTaskUrlPairList.Len())
+
+	c.logger.Infof(utils.Green(endMsg))
+
+	_, failedTaskCountTotal := c.failedTaskCounter.Value()
+	_, failedGenerateTaskCountTotal := c.failedGenerateTaskCounter.Value()
+
+	if failedTaskCountTotal != 0 || failedGenerateTaskCountTotal != 0 {
+		return fmt.Errorf(endMsg)
+	}
+	return nil
 }
 
 func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
@@ -111,13 +140,24 @@ func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
 			if urlPair == nil {
 				break
 			}
+
+			c.logger.Infof("Generating tasks for %v...", urlPair.(*URLPair).String())
+
 			if err := c.GenerateSyncTasks(urlPair.(*URLPair).source, urlPair.(*URLPair).destination); err != nil {
-				c.logger.Errorf("Generate sync task %s to %s error: %v",
-					urlPair.(*URLPair).source, urlPair.(*URLPair).destination, err)
+				c.logger.Errorf("Generate sync task %s error: %v",
+					urlPair.(*URLPair).String(), err)
 
 				// put to failedTaskGenerateList
-				c.failedTaskGenerateUrlPairList.PushBack(urlPair)
+				c.failedGenerateTaskUrlPairList.PushBack(urlPair)
+				c.failedGenerateTaskCounter.IncreaseTotal()
 			}
+
+			count, total := c.generateTaskCounter.Increase()
+			finishedNumString := utils.Green(fmt.Sprintf("%d", count))
+			totalNumString := utils.Green(fmt.Sprintf("%d", total))
+
+			c.logger.Infof("Finish generating tasks for %v, %v/%v generate tasks executed", urlPair.(*URLPair).String(),
+				finishedNumString, totalNumString)
 		}
 	})
 }
@@ -137,17 +177,25 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 			primary, message, err := syncTask.Run()
 			if err != nil {
 				c.failedTaskList.PushBack(syncTask)
+				c.failedTaskCounter.IncreaseTotal()
 			}
 
+			count, total := c.taskCounter.Increase()
+			finishedNumString := utils.Green(fmt.Sprintf("%d", count))
+			totalNumString := utils.Green(fmt.Sprintf("%d", total))
+
 			if len(message) != 0 {
-				c.logger.Infof("Finish %v: %v", syncTask.String(), message)
+				c.logger.Infof("Finish %v: %v, %v/%v tasks executed", syncTask.String(), message,
+					finishedNumString, totalNumString)
 			} else {
-				c.logger.Infof("Finish %v", syncTask.String())
+				c.logger.Infof("Finish %v, %v/%v tasks executed", syncTask.String(),
+					finishedNumString, totalNumString)
 			}
 
 			if primary != nil {
 				// handler manifest
 				c.taskList.PushFront(primary)
+				c.taskCounter.IncreaseTotal()
 			}
 		}
 	})
@@ -198,6 +246,7 @@ func (c *Client) GenerateSyncTasks(source string, destination string) error {
 
 	for _, t := range tasks {
 		c.taskList.PushBack(t)
+		c.taskCounter.IncreaseTotal()
 	}
 
 	return nil
@@ -258,16 +307,13 @@ func (c *Client) generateTasks(sourceURLs, destinationURLs []*utils.RepoURL) ([]
 			return nil, fmt.Errorf("generate %s image destination error: %v", destinationURLs[index].String(), err)
 		}
 
-		c.logger.Infof("Generate tasks for %s to %s", imageSource, imageDestination)
 		tasks, msg, err := task.GenerateTasks(imageSource, imageDestination, c.config.osFilterList, c.config.archFilterList)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate tasks: %v", err)
 		}
 
-		if len(msg) != 0 {
-			c.logger.Infof("Finish generating tasks for %s to %s: %v", imageSource, imageDestination, msg)
-		} else {
-			c.logger.Infof("Finish generating tasks for %s to %s", imageSource, imageDestination)
+		if len(tasks) == 0 {
+			c.logger.Infof("No task is generated for %s->%s: %v", imageSource, imageDestination, msg)
 		}
 
 		result = append(result, tasks...)

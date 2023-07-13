@@ -1,9 +1,9 @@
-name: build
+name: codecov
 
 on:
   push:
     branches:
-      - 'mater'
+      - 'master'
   pull_request:
     branches:
       - 'master'

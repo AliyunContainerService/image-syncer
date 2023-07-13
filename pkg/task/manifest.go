@@ -34,8 +34,7 @@ func (m *ManifestTask) Run() (Task, string, error) {
 		return nil, resultMsg, nil
 	}
 
-	m.primary.FreeOnce()
-	if m.primary.Runnable() {
+	if m.primary.ReleaseOnce() {
 		resultMsg = fmt.Sprintf("start to sync manifest list")
 		return m.primary, resultMsg, nil
 	}
@@ -47,11 +46,13 @@ func (m *ManifestTask) GetPrimary() Task {
 }
 
 func (m *ManifestTask) Runnable() bool {
-	return m.counter.Value() == 0
+	count, _ := m.counter.Value()
+	return count == 0
 }
 
-func (m *ManifestTask) FreeOnce() {
-	m.counter.Decrease()
+func (m *ManifestTask) ReleaseOnce() bool {
+	count, _ := m.counter.Decrease()
+	return count == 0
 }
 
 func (m *ManifestTask) GetSource() *sync.ImageSource {

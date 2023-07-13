@@ -1,6 +1,8 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+)
 
 func RepoMathPrefix(repo, prefix string) bool {
 	if len(prefix) == 0 {

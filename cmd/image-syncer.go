@@ -27,6 +27,8 @@ var RootCmd = &cobra.Command{
 	
 	Complete documentation is available at https://github.com/AliyunContainerService/image-syncer`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceErrors = true
+
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,
 			defaultRegistry, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList))
@@ -34,8 +36,8 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("init sync client error: %v", err)
 		}
 
-		client.Run()
-		return nil
+		cmd.SilenceUsage = true
+		return client.Run()
 	},
 }
 

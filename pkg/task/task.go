@@ -20,8 +20,8 @@ type Task interface {
 	// Runnable returns if the task can be executed immediately
 	Runnable() bool
 
-	// FreeOnce try to make task runnable once.
-	FreeOnce()
+	// ReleaseOnce try to release once and return if the task is runnable after being released.
+	ReleaseOnce() bool
 
 	// GetSource return a source refers to the source images.
 	GetSource() *sync.ImageSource
@@ -75,7 +75,7 @@ func GenerateTasks(source *sync.ImageSource, destination *sync.ImageDestination,
 			return nil, resultMsg, fmt.Errorf("failed to get blob infos: %v", err)
 		}
 
-		destManifestTask.counter = concurrent.NewCounter(len(blobInfos))
+		destManifestTask.counter = concurrent.NewCounter(len(blobInfos), len(blobInfos))
 
 		for _, info := range blobInfos {
 			// only append blob tasks
@@ -104,7 +104,7 @@ func GenerateTasks(source *sync.ImageSource, destination *sync.ImageDestination,
 				source:      source,
 				destination: destination,
 				primary:     destManifestTask,
-				counter:     concurrent.NewCounter(len(blobInfos)),
+				counter:     concurrent.NewCounter(len(blobInfos), len(blobInfos)),
 				bytes:       mfstInfo.Bytes,
 				digest:      mfstInfo.Digest,
 			}
@@ -117,7 +117,7 @@ func GenerateTasks(source *sync.ImageSource, destination *sync.ImageDestination,
 				})
 			}
 		}
-		destManifestTask.counter = concurrent.NewCounter(noExistSubManifestCounter)
+		destManifestTask.counter = concurrent.NewCounter(noExistSubManifestCounter, noExistSubManifestCounter)
 
 		if noExistSubManifestCounter == 0 {
 			// all the sub manifests are exist in destination

@@ -3,6 +3,8 @@ package task
 import (
 	"fmt"
 
+	"github.com/docker/go-units"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/containers/image/v5/types"
 )
@@ -41,8 +43,7 @@ func (b *BlobTask) Run() (Task, string, error) {
 		resultMsg = fmt.Sprintf("ignore exist blob")
 	}
 
-	b.primary.FreeOnce()
-	if b.primary.Runnable() {
+	if b.primary.ReleaseOnce() {
 		resultMsg = fmt.Sprintf("start to sync manifest")
 		return b.primary, resultMsg, nil
 	}
@@ -58,8 +59,9 @@ func (b *BlobTask) Runnable() bool {
 	return true
 }
 
-func (b *BlobTask) FreeOnce() {
+func (b *BlobTask) ReleaseOnce() bool {
 	// do nothing
+	return true
 }
 
 func (b *BlobTask) GetSource() *sync.ImageSource {
@@ -72,5 +74,5 @@ func (b *BlobTask) GetDestination() *sync.ImageDestination {
 
 func (b *BlobTask) String() string {
 	return fmt.Sprintf("sync blob %s(%v) from %s to %s",
-		b.info.Digest, b.info.Size, b.GetSource().String(), b.GetDestination().String())
+		b.info.Digest, units.HumanSize(float64(b.info.Size)), b.GetSource().String(), b.GetDestination().String())
 }
