@@ -22,5 +22,7 @@ jobs:
         run: make
       - name: Run docker registry
         run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - name: Run command
+      - name: Run image-syncer
         run: ./image-syncer --proc=6 --auth=./.github/workflows/config/test-auth.yml --images=./.github/workflows/config/test-images.yml
+      - name: Use docker to check result
+        run: docker pull localhost:5000/image-syncer-test/alpine:3.18.2 && docker pull localhost:5000/image-syncer-test/olm:v0.18.3
