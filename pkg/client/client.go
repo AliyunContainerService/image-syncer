@@ -3,11 +3,11 @@ package client
 import (
 	"fmt"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
+	"github.com/sirupsen/logrus"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
-	"github.com/sirupsen/logrus"
 )
 
 // Client describes a synchronization client
@@ -61,7 +61,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 }
 
 // Run is main function of a synchronization client
-func (c *Client) Run() {
+func (c *Client) Run() error {
 	fmt.Println("Start to generate sync tasks, please wait ...")
 
 	for source, dest := range c.config.GetImageList() {
@@ -102,6 +102,12 @@ func (c *Client) Run() {
 
 	fmt.Printf("Finished, %v sync tasks failed, %v tasks generate failed\n", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
 	c.logger.Infof("Finished, %v sync tasks failed, %v tasks generate failed", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
+
+	if c.failedTaskList.Len() > 0 || c.failedTaskGenerateList.Len() > 0 {
+		return fmt.Errorf("%v sync tasks failed, %v tasks generate failed", c.failedTaskList.Len(), c.failedTaskGenerateList.Len())
+	}
+
+	return nil
 }
 
 func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
