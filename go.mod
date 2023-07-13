@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/containers/image/v5 v5.25.0
+	github.com/docker/go-units v0.5.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/sirupsen/logrus v1.9.0
@@ -25,7 +26,6 @@ require (
 	github.com/docker/docker v23.0.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/docker/go-units v0.5.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

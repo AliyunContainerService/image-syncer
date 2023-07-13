@@ -35,7 +35,7 @@ func (m *ManifestTask) Run() (Task, string, error) {
 	}
 
 	if m.primary.ReleaseOnce() {
-		resultMsg = fmt.Sprintf("start to sync manifest list")
+		resultMsg = "start to sync manifest list"
 		return m.primary, resultMsg, nil
 	}
 	return nil, resultMsg, nil

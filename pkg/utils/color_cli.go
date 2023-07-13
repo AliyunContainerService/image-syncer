@@ -71,12 +71,12 @@ func Brown(str string, modifier ...interface{}) string {
 }
 
 func cliColorRender(str string, color int, weight int, extraArgs ...interface{}) string {
-	var isBlink int64 = 0
+	var isBlink int64
 	if len(extraArgs) > 0 {
 		isBlink = reflect.ValueOf(extraArgs[0]).Int()
 	}
 
-	var isUnderLine int64 = 0
+	var isUnderLine int64
 	if len(extraArgs) > 1 {
 		isUnderLine = reflect.ValueOf(extraArgs[1]).Int()
 	}
@@ -97,6 +97,6 @@ func cliColorRender(str string, color int, weight int, extraArgs ...interface{})
 	if len(mo) <= 0 {
 		mo = append(mo, "0")
 	}
-	
+
 	return fmt.Sprintf("\033[%s;%dm"+str+"\033[0m", strings.Join(mo, ";"), color)
 }

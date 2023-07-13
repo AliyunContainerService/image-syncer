@@ -40,11 +40,11 @@ func (b *BlobTask) Run() (Task, string, error) {
 			return nil, resultMsg, fmt.Errorf("failed to put blob %s(%v): %v", b.info.Digest, b.info.Size, err)
 		}
 	} else {
-		resultMsg = fmt.Sprintf("ignore exist blob")
+		resultMsg = "ignore exist blob"
 	}
 
 	if b.primary.ReleaseOnce() {
-		resultMsg = fmt.Sprintf("start to sync manifest")
+		resultMsg = "start to sync manifest"
 		return b.primary, resultMsg, nil
 	}
 	return nil, resultMsg, nil

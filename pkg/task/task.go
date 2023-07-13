@@ -50,13 +50,13 @@ func GenerateTasks(source *sync.ImageSource, destination *sync.ImageDestination,
 	}
 
 	if destManifestObj == nil {
-		resultMsg = fmt.Sprintf("skip synchronization because no manifest fits platform filters")
+		resultMsg = "skip synchronization because no manifest fits platform filters"
 		return nil, resultMsg, nil
 	}
 
 	if changed := destination.CheckManifestChanged(destManifestBytes, nil); !changed {
 		// do nothing if image is unchanged
-		resultMsg = fmt.Sprintf("skip synchronization because destination image exists")
+		resultMsg = "skip synchronization because destination image exists"
 		return nil, resultMsg, nil
 	}
 
