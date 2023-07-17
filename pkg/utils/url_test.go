@@ -16,6 +16,7 @@ func TestURL(t *testing.T) {
 		"127.0.0.1:300/library/nginx",
 		"127.0.0.1:300/library/nginx:v1,v2",
 		"registry.cn-beijing.aliyuncs.com/hhyasdf/hybridnet@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e",
+		"nginx",
 	}
 
 	var repoURLs []*RepoURL
@@ -52,4 +53,5 @@ func TestURL(t *testing.T) {
 		repoURLs[7].GetRepoWithTagOrDigest())
 	assert.Equal(t, "hhyasdf/hybridnet",
 		repoURLs[7].GetRepo())
+	assert.Equal(t, DockerHubURL, repoURLs[8].GetRegistry())
 }

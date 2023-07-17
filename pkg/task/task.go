@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 )
 
+// Task refers to the synchronization for a blob or a manifest.
 type Task interface {
 	// Run returns primary task and result message if success while primary task is not nil and can run immediately.
 	Run() (Task, string, error)

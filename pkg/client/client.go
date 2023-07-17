@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/task"
 
@@ -12,27 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Client describes a synchronization client
-type Client struct {
-	taskList       *concurrent.List
-	failedTaskList *concurrent.List
-
-	generateTaskList       *concurrent.List
-	failedGenerateTaskList *concurrent.List
-
-	taskCounter         *concurrent.Counter
-	generateTaskCounter *concurrent.Counter
-
-	failedTaskCounter         *concurrent.Counter
-	failedGenerateTaskCounter *concurrent.Counter
-
-	config *Config
-
-	routineNum int
-	retries    int
-	logger     *logrus.Logger
-}
-
 type generateTask struct {
 	source      string
 	destination string
@@ -40,6 +20,27 @@ type generateTask struct {
 
 func (g *generateTask) String() string {
 	return g.source + "->" + g.destination
+}
+
+// Client describes a synchronization client
+type Client struct {
+	syncTaskList       *concurrent.List
+	failedSyncTaskList *concurrent.List
+
+	generateTaskList       *concurrent.List
+	failedGenerateTaskList *concurrent.List
+
+	syncTaskCounter     *concurrent.Counter
+	generateTaskCounter *concurrent.Counter
+
+	failedSyncTaskCounter     *concurrent.Counter
+	failedGenerateTaskCounter *concurrent.Counter
+
+	config *Config
+
+	routineNum int
+	retries    int
+	logger     *logrus.Logger
 }
 
 // NewSyncClient creates a synchronization client
@@ -56,14 +57,14 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 	}
 
 	return &Client{
-		taskList:                  concurrent.NewList(),
+		syncTaskList:              concurrent.NewList(),
 		generateTaskList:          concurrent.NewList(),
-		failedTaskList:            concurrent.NewList(),
+		failedSyncTaskList:        concurrent.NewList(),
 		failedGenerateTaskList:    concurrent.NewList(),
 		generateTaskCounter:       concurrent.NewCounter(0, 0),
 		failedGenerateTaskCounter: concurrent.NewCounter(0, 0),
-		taskCounter:               concurrent.NewCounter(0, 0),
-		failedTaskCounter:         concurrent.NewCounter(0, 0),
+		syncTaskCounter:           concurrent.NewCounter(0, 0),
+		failedSyncTaskCounter:     concurrent.NewCounter(0, 0),
 		config:                    config,
 		routineNum:                routineNum,
 		retries:                   retries,
@@ -73,6 +74,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 
 // Run is main function of a synchronization client
 func (c *Client) Run() error {
+	start := time.Now()
 	c.logger.Infof("Start to generate sync tasks, please wait ...")
 
 	for source, dest := range c.config.GetImageList() {
@@ -92,7 +94,7 @@ func (c *Client) Run() error {
 	c.openRoutinesHandleTaskAndWaitForFinish()
 
 	for times := 0; times < c.retries; times++ {
-		c.taskCounter, c.failedTaskCounter = c.failedTaskCounter, concurrent.NewCounter(0, 0)
+		c.syncTaskCounter, c.failedSyncTaskCounter = c.failedSyncTaskCounter, concurrent.NewCounter(0, 0)
 		c.generateTaskCounter, c.failedGenerateTaskCounter = c.failedGenerateTaskCounter,
 			concurrent.NewCounter(0, 0)
 
@@ -101,32 +103,32 @@ func (c *Client) Run() error {
 			c.failedGenerateTaskList.Reset()
 
 			// retry to generate task
-			c.logger.Infof("Start to retry to generate sync tasks, please wait ...")
+			c.logger.Infof("Start to retry generate tasks, please wait ...")
 			c.openRoutinesGenTaskAndWaitForFinish()
 		}
 
-		if c.failedTaskList.Len() != 0 {
-			c.taskList.PushBackList(c.failedTaskList)
-			c.failedTaskList.Reset()
+		if c.failedSyncTaskList.Len() != 0 {
+			c.syncTaskList.PushBackList(c.failedSyncTaskList)
+			c.failedSyncTaskList.Reset()
 		}
 
-		if c.taskList.Len() != 0 {
+		if c.syncTaskList.Len() != 0 {
 			// retry to handle task
 			c.logger.Infof("Start to retry sync tasks, please wait ...")
 			c.openRoutinesHandleTaskAndWaitForFinish()
 		}
 	}
 
-	endMsg := fmt.Sprintf("Finished, %v tasks failed, %v rules failed to be generated to tasks",
-		c.failedTaskList.Len(), c.failedGenerateTaskList.Len())
+	endMsg := fmt.Sprintf("Finished, %v sync tasks failed, %v generate tasks failed, cost %v",
+		c.failedSyncTaskList.Len(), c.failedGenerateTaskList.Len(), time.Now().Sub(start).String())
 
 	c.logger.Infof(utils.Green(endMsg))
 
-	_, failedTaskCountTotal := c.failedTaskCounter.Value()
+	_, failedSyncTaskCountTotal := c.failedSyncTaskCounter.Value()
 	_, failedGenerateTaskCountTotal := c.failedGenerateTaskCounter.Value()
 
-	if failedTaskCountTotal != 0 || failedGenerateTaskCountTotal != 0 {
-		return fmt.Errorf(endMsg)
+	if failedSyncTaskCountTotal != 0 || failedGenerateTaskCountTotal != 0 {
+		return fmt.Errorf("failed tasks or failed generate tasks exist")
 	}
 	return nil
 }
@@ -165,7 +167,7 @@ func (c *Client) openRoutinesGenTaskAndWaitForFinish() {
 func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 	concurrent.CreateRoutinesAndWaitForFinish(c.routineNum, func() {
 		for {
-			item := c.taskList.PopFront()
+			item := c.syncTaskList.PopFront()
 			// no more tasks need to handle
 			if item == nil {
 				break
@@ -176,11 +178,11 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 
 			primary, message, err := syncTask.Run()
 			if err != nil {
-				c.failedTaskList.PushBack(syncTask)
-				c.failedTaskCounter.IncreaseTotal()
+				c.failedSyncTaskList.PushBack(syncTask)
+				c.failedSyncTaskCounter.IncreaseTotal()
 			}
 
-			count, total := c.taskCounter.Increase()
+			count, total := c.syncTaskCounter.Increase()
 			finishedNumString := utils.Green(fmt.Sprintf("%d", count))
 			totalNumString := utils.Green(fmt.Sprintf("%d", total))
 
@@ -194,8 +196,8 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 
 			if primary != nil {
 				// handler manifest
-				c.taskList.PushFront(primary)
-				c.taskCounter.IncreaseTotal()
+				c.syncTaskList.PushFront(primary)
+				c.syncTaskCounter.IncreaseTotal()
 			}
 		}
 	})
@@ -245,8 +247,8 @@ func (c *Client) GenerateSyncTasks(source string, destination string) error {
 	}
 
 	for _, t := range tasks {
-		c.taskList.PushBack(t)
-		c.taskCounter.IncreaseTotal()
+		c.syncTaskList.PushBack(t)
+		c.syncTaskCounter.IncreaseTotal()
 	}
 
 	return nil
@@ -269,9 +271,15 @@ func (c *Client) checkSourceAndDestinationURLs(sourceURLs, destinationURLs []*ut
 
 func (c *Client) listAllTags(registry, repository string) ([]string, error) {
 	auth, exist := c.config.GetAuth(registry + "/" + repository)
-	if exist {
-		c.logger.Infof("Find auth information for %v, username: %v", registry+"/"+repository, auth.Username)
+	if !exist {
+		c.logger.Infof("No auth information found for %v, access will be anonymous", registry+"/"+repository)
 	}
+
+	c.logger.Infof("Start to list tags for %v/%v, please wait ...", registry, repository)
+	defer func() {
+		c.logger.Infof("Finish listing tags for %v/%v", registry, repository)
+	}()
+
 	imageSource, err := sync.NewImageSource(registry, repository, "",
 		auth.Username, auth.Password, auth.Insecure)
 	if err != nil {
@@ -285,8 +293,8 @@ func (c *Client) generateTasks(sourceURLs, destinationURLs []*utils.RepoURL) ([]
 	var result []task.Task
 	for index, s := range sourceURLs {
 		auth, exist := c.config.GetAuth(s.GetURLWithoutTagOrDigest())
-		if exist {
-			c.logger.Infof("Find auth information for %v, username: %v", s.String(), auth.Username)
+		if !exist {
+			c.logger.Infof("No auth information found for %v, access will be anonymous", s.String())
 		}
 
 		imageSource, err := sync.NewImageSource(s.GetRegistry(), s.GetRepo(), s.GetTagOrDigest(),
@@ -295,9 +303,9 @@ func (c *Client) generateTasks(sourceURLs, destinationURLs []*utils.RepoURL) ([]
 			return nil, fmt.Errorf("generate %s image source error: %v", s.String(), err)
 		}
 
-		auth, exist = c.config.GetAuth(destinationURLs[index].GetURLWithoutTagOrDigest())
-		if exist {
-			c.logger.Infof("Find auth information for %v, username: %v", destinationURLs[index].String(), auth.Username)
+		auth, _ = c.config.GetAuth(destinationURLs[index].GetURLWithoutTagOrDigest())
+		if !exist {
+			c.logger.Infof("No auth information found for %v, access will be anonymous", destinationURLs[index].String())
 		}
 
 		imageDestination, err := sync.NewImageDestination(destinationURLs[index].GetRegistry(),

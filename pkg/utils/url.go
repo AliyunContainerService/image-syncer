@@ -45,8 +45,8 @@ func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository
 		urlWithoutTagOrDigest = taggedRef.Name()
 	} else if err == nil {
 		// url has no specified digest or tag
-		slice := strings.SplitN(url, "/", 2)
-		allTags, err := externalTagsOrDigest(slice[0], slice[1])
+		registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(url)
+		allTags, err := externalTagsOrDigest(registry, repo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get external tags: %v", err)
 		}
@@ -72,16 +72,7 @@ func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository
 		tagsOrDigest = append(tagsOrDigest, slice[1:]...)
 	}
 
-	var registry, repo string
-	// split to registry/repo
-	slice := strings.SplitN(urlWithoutTagOrDigest, "/", 2)
-	if len(slice) == 0 {
-		registry = DockerHubURL
-		repo = slice[0]
-	} else {
-		registry = slice[0]
-		repo = slice[1]
-	}
+	registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(urlWithoutTagOrDigest)
 
 	// if no tags or digest provided, an empty slice will be returned
 	for _, item := range tagsOrDigest {
@@ -150,4 +141,17 @@ func AttachConnectorToTagOrDigest(tagOrDigest string) string {
 		return ":" + tagOrDigest
 	}
 	return "@" + tagOrDigest
+}
+
+func getRegistryAndRepositoryFromURLWithoutTagOrDigest(urlWithoutTagOrDigest string) (registry string, repo string) {
+	slice := strings.SplitN(urlWithoutTagOrDigest, "/", 2)
+	if len(slice) == 1 {
+		registry = DockerHubURL
+		repo = slice[0]
+	} else {
+		registry = slice[0]
+		repo = slice[1]
+	}
+
+	return
 }
