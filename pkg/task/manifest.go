@@ -10,6 +10,7 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
+// ManifestTask sync a manifest from source to destination.
 type ManifestTask struct {
 	source      *sync.ImageSource
 	destination *sync.ImageDestination
@@ -23,7 +24,19 @@ type ManifestTask struct {
 	digest *digest.Digest
 }
 
-func (m *ManifestTask) Run() (Task, string, error) {
+func NewManifestTask(manifestListTask Task, source *sync.ImageSource, destination *sync.ImageDestination,
+	counter *concurrent.Counter, bytes []byte, digest *digest.Digest) *ManifestTask {
+	return &ManifestTask{
+		primary:     manifestListTask,
+		source:      source,
+		destination: destination,
+		counter:     counter,
+		bytes:       bytes,
+		digest:      digest,
+	}
+}
+
+func (m *ManifestTask) Run() ([]Task, string, error) {
 	var resultMsg string
 
 	if err := m.destination.PushManifest(m.bytes, m.digest); err != nil {
@@ -36,7 +49,7 @@ func (m *ManifestTask) Run() (Task, string, error) {
 
 	if m.primary.ReleaseOnce() {
 		resultMsg = "start to sync manifest list"
-		return m.primary, resultMsg, nil
+		return []Task{m.primary}, resultMsg, nil
 	}
 	return nil, resultMsg, nil
 }
@@ -64,14 +77,16 @@ func (m *ManifestTask) GetDestination() *sync.ImageDestination {
 }
 
 func (m *ManifestTask) String() string {
-	var tagOrDigest string
+	var srcTagOrDigest, dstTagOrDigest string
 	if m.primary == nil {
-		tagOrDigest = m.GetDestination().GetTagOrDigest()
+		srcTagOrDigest = m.GetSource().GetTagOrDigest()
+		dstTagOrDigest = m.GetDestination().GetTagOrDigest()
 	} else {
-		tagOrDigest = m.digest.String()
+		srcTagOrDigest = m.digest.String()
+		dstTagOrDigest = m.digest.String()
 	}
 
-	return fmt.Sprintf("sync manifest from %s/%s%s to %s/%s%s",
-		m.GetSource().GetRegistry(), m.GetSource().GetRepository(), utils.AttachConnectorToTagOrDigest(tagOrDigest),
-		m.GetDestination().GetRegistry(), m.GetDestination().GetRepository(), utils.AttachConnectorToTagOrDigest(tagOrDigest))
+	return fmt.Sprintf("synchronizing manifest from %s/%s%s to %s/%s%s",
+		m.GetSource().GetRegistry(), m.GetSource().GetRepository(), utils.AttachConnectorToTagOrDigest(srcTagOrDigest),
+		m.GetDestination().GetRegistry(), m.GetDestination().GetRepository(), utils.AttachConnectorToTagOrDigest(dstTagOrDigest))
 }

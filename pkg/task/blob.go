@@ -9,13 +9,21 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
+// BlobTask sync a blob which belongs to the primary ManifestTask.
 type BlobTask struct {
 	primary Task
 
 	info types.BlobInfo
 }
 
-func (b *BlobTask) Run() (Task, string, error) {
+func NewBlobTask(manifestTask Task, info types.BlobInfo) *BlobTask {
+	return &BlobTask{
+		primary: manifestTask,
+		info:    info,
+	}
+}
+
+func (b *BlobTask) Run() ([]Task, string, error) {
 	var resultMsg string
 
 	dst := b.primary.GetDestination()
@@ -45,7 +53,7 @@ func (b *BlobTask) Run() (Task, string, error) {
 
 	if b.primary.ReleaseOnce() {
 		resultMsg = "start to sync manifest"
-		return b.primary, resultMsg, nil
+		return []Task{b.primary}, resultMsg, nil
 	}
 	return nil, resultMsg, nil
 }
@@ -73,6 +81,6 @@ func (b *BlobTask) GetDestination() *sync.ImageDestination {
 }
 
 func (b *BlobTask) String() string {
-	return fmt.Sprintf("sync blob %s(%v) from %s to %s",
+	return fmt.Sprintf("synchronizing blob %s(%v) from %s to %s",
 		b.info.Digest, units.HumanSize(float64(b.info.Size)), b.GetSource().String(), b.GetDestination().String())
 }

@@ -15,7 +15,7 @@ import (
 // Config information of sync client
 type Config struct {
 	// the authentication information of each registry
-	AuthList map[string]Auth `json:"auth" yaml:"auth"`
+	AuthList map[string]utils.Auth `json:"auth" yaml:"auth"`
 
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]string `json:"images" yaml:"images"`
@@ -28,13 +28,6 @@ type Config struct {
 	// If the destination registry and namespace is not provided,
 	// the source image will be synchronized to defaultDestRegistry with origin repo name and tag.
 	defaultDestRegistry string
-}
-
-// Auth describes the authentication information of a registry
-type Auth struct {
-	Username string `json:"username" yaml:"username"`
-	Password string `json:"password" yaml:"password"`
-	Insecure bool   `json:"insecure" yaml:"insecure"`
 }
 
 // NewSyncConfig creates a Config struct
@@ -107,8 +100,8 @@ func openAndDecode(filePath string, target interface{}) error {
 }
 
 // GetAuth gets the authentication information in Config
-func (c *Config) GetAuth(repository string) (Auth, bool) {
-	auth := Auth{}
+func (c *Config) GetAuth(repository string) (utils.Auth, bool) {
+	auth := utils.Auth{}
 	prefixLen := 0
 	exist := false
 
@@ -129,13 +122,13 @@ func (c *Config) GetImageList() map[string]string {
 	return c.ImageList
 }
 
-func expandEnv(authMap map[string]Auth) map[string]Auth {
-	result := make(map[string]Auth)
+func expandEnv(authMap map[string]utils.Auth) map[string]utils.Auth {
+	result := make(map[string]utils.Auth)
 
 	for registry, auth := range authMap {
 		pwd := os.ExpandEnv(auth.Password)
 		name := os.ExpandEnv(auth.Username)
-		newAuth := Auth{
+		newAuth := utils.Auth{
 			Username: name,
 			Password: pwd,
 			Insecure: auth.Insecure,
