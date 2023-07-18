@@ -97,7 +97,7 @@ func (c *Client) Run() error {
 	}
 
 	endMsg := fmt.Sprintf("Finished, %v sync tasks failed, cost %v.",
-		c.failedTaskList.Len(), time.Now().Sub(start).String())
+		c.failedTaskList.Len(), time.Since(start).String())
 
 	c.logger.Infof(utils.Green(endMsg))
 
