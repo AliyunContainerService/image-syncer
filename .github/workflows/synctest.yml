@@ -25,4 +25,8 @@ jobs:
       - name: Run image-syncer
         run: ./image-syncer --proc=6 --auth=./.github/workflows/config/test-auth.yml --images=./.github/workflows/config/test-images.yml
       - name: Use docker to check result
-        run: docker pull localhost:5000/image-syncer-test/alpine:3.18.2 && docker pull localhost:5000/image-syncer-test/olm:v0.18.3
+        run: |
+          docker pull localhost:5000/image-syncer-test/alpine:3.18.2 &&
+          docker pull localhost:5000/image-syncer-test/olm:v0.18.3 &&
+          docker pull localhost:5000/image-syncer-test/hybridnet:v0.8.2 &&
+          docker pull localhost:5000/image-syncer-test/hybridnet@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a14a0212b0d4fce8d729598c
