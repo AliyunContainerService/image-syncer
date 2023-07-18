@@ -15,10 +15,12 @@ type RuleTask struct {
 	defaultDestRegistry string
 
 	getAuthFunc func(repository string) utils.Auth
+
+	forceUpdate bool
 }
 
 func NewRuleTask(source, destination, defaultDestRegistry string,
-	getAuthFunc func(repository string) utils.Auth) (*RuleTask, error) {
+	getAuthFunc func(repository string) utils.Auth, forceUpdate bool) (*RuleTask, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source url should not be empty")
 	}
@@ -28,6 +30,7 @@ func NewRuleTask(source, destination, defaultDestRegistry string,
 		destination:         destination,
 		defaultDestRegistry: defaultDestRegistry,
 		getAuthFunc:         getAuthFunc,
+		forceUpdate:         forceUpdate,
 	}, nil
 }
 
@@ -67,8 +70,8 @@ func (r *RuleTask) Run() ([]Task, string, error) {
 
 	var results []Task
 	for index, s := range sourceURLs {
-		results = append(results, NewURLTask(s, destinationURLs[index],
-			r.getAuthFunc(s.GetURLWithoutTagOrDigest()), r.getAuthFunc(destinationURLs[index].GetURLWithoutTagOrDigest())))
+		results = append(results, NewURLTask(s, destinationURLs[index], r.getAuthFunc(s.GetURLWithoutTagOrDigest()),
+			r.getAuthFunc(destinationURLs[index].GetURLWithoutTagOrDigest()), r.forceUpdate))
 	}
 
 	return results, "", nil

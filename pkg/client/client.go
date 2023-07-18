@@ -25,12 +25,14 @@ type Client struct {
 	routineNum int
 	retries    int
 	logger     *logrus.Logger
+
+	forceUpdate bool
 }
 
 // NewSyncClient creates a synchronization client
 func NewSyncClient(configFile, authFile, imageFile, logFile string,
 	routineNum, retries int, defaultDestRegistry string,
-	osFilterList, archFilterList []string) (*Client, error) {
+	osFilterList, archFilterList []string, forceUpdate bool) (*Client, error) {
 
 	logger := NewFileLogger(logFile)
 
@@ -51,6 +53,8 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 		routineNum: routineNum,
 		retries:    retries,
 		logger:     logger,
+
+		forceUpdate: forceUpdate,
 	}, nil
 }
 
@@ -66,7 +70,7 @@ func (c *Client) Run() error {
 					c.logger.Infof("Auth information not found for %v, access will be anonymous.", repository)
 				}
 				return auth
-			})
+			}, c.forceUpdate)
 		if err != nil {
 			return fmt.Errorf("failed to generate rule task for %s -> %s", source, dest)
 		}

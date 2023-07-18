@@ -21,14 +21,17 @@ type URLTask struct {
 	destinationAuth utils.Auth
 
 	osFilterList, archFilterList []string
+
+	forceUpdate bool
 }
 
-func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth utils.Auth) Task {
+func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth utils.Auth, forceUpdate bool) Task {
 	return &URLTask{
 		source:          source,
 		destination:     destination,
 		sourceAuth:      sourceAuth,
 		destinationAuth: destinationAuth,
+		forceUpdate:     forceUpdate,
 	}
 }
 
@@ -45,7 +48,7 @@ func (u *URLTask) Run() ([]Task, string, error) {
 		return nil, "", fmt.Errorf("generate %s image destination error: %v", u.destination.String(), err)
 	}
 
-	tasks, msg, err := generateSyncTasks(imageSource, imageDestination, u.osFilterList, u.archFilterList)
+	tasks, msg, err := u.generateSyncTasks(imageSource, imageDestination, u.osFilterList, u.archFilterList)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate manifest/blob tasks: %v", err)
 	}
@@ -80,7 +83,7 @@ func (u *URLTask) String() string {
 }
 
 // generateSyncTasks generates blob/manifest tasks.
-func generateSyncTasks(source *sync.ImageSource, destination *sync.ImageDestination,
+func (u *URLTask) generateSyncTasks(source *sync.ImageSource, destination *sync.ImageDestination,
 	osFilterList, archFilterList []string) ([]Task, string, error) {
 	var results []Task
 	var resultMsg string
@@ -102,7 +105,7 @@ func generateSyncTasks(source *sync.ImageSource, destination *sync.ImageDestinat
 		return nil, resultMsg, nil
 	}
 
-	if changed := destination.CheckManifestChanged(destManifestBytes, nil); !changed {
+	if changed := destination.CheckManifestChanged(destManifestBytes, nil); !u.forceUpdate && !changed {
 		// do nothing if image is unchanged
 		resultMsg = "skip synchronization because destination image exists"
 		return nil, resultMsg, nil
@@ -130,7 +133,7 @@ func generateSyncTasks(source *sync.ImageSource, destination *sync.ImageDestinat
 		var ignoredManifestDigests []string
 
 		for _, mfstInfo := range subManifestInfoSlice {
-			if changed := destination.CheckManifestChanged(mfstInfo.Bytes, mfstInfo.Digest); !changed {
+			if changed := destination.CheckManifestChanged(mfstInfo.Bytes, mfstInfo.Digest); !u.forceUpdate && !changed {
 				// do nothing if manifest is unchanged
 				ignoredManifestDigests = append(ignoredManifestDigests, mfstInfo.Digest.String())
 				continue

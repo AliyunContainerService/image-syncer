@@ -16,6 +16,8 @@ var (
 	procNum, retries int
 
 	osFilterList, archFilterList []string
+
+	forceUpdate bool
 )
 
 // RootCmd describes "image-syncer" command
@@ -31,7 +33,7 @@ var RootCmd = &cobra.Command{
 
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,
-			defaultRegistry, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList))
+			defaultRegistry, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList), forceUpdate)
 		if err != nil {
 			return fmt.Errorf("init sync client error: %v", err)
 		}
@@ -54,6 +56,7 @@ func init() {
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
 	RootCmd.PersistentFlags().StringArrayVar(&osFilterList, "os", []string{}, "os list to filter source tags, not works for docker v2 schema1 and OCI media")
 	RootCmd.PersistentFlags().StringArrayVar(&archFilterList, "arch", []string{}, "architecture list to filter source tags, not works for OCI media")
+	RootCmd.PersistentFlags().BoolVar(&forceUpdate, "force", false, "force update manifest whether the destination manifest exists")
 }
 
 // Execute executes the RootCmd
