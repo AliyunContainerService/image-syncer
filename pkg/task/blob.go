@@ -26,6 +26,12 @@ func NewBlobTask(manifestTask Task, info types.BlobInfo) *BlobTask {
 func (b *BlobTask) Run() ([]Task, string, error) {
 	var resultMsg string
 
+	//// random failure test
+	//rand.Seed(time.Now().UnixNano())
+	//if rand.Intn(100)%2 == 1 {
+	//	return nil, resultMsg, fmt.Errorf("random failure")
+	//}
+
 	dst := b.primary.GetDestination()
 	src := b.primary.GetSource()
 

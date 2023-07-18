@@ -39,6 +39,12 @@ func NewManifestTask(manifestListTask Task, source *sync.ImageSource, destinatio
 func (m *ManifestTask) Run() ([]Task, string, error) {
 	var resultMsg string
 
+	//// random failure test
+	//rand.Seed(time.Now().UnixNano())
+	//if rand.Intn(100)%2 == 1 {
+	//	return nil, resultMsg, fmt.Errorf("random failure")
+	//}
+
 	if err := m.destination.PushManifest(m.bytes, m.digest); err != nil {
 		return nil, resultMsg, fmt.Errorf("failed to put manifest: %v", err)
 	}
