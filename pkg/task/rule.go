@@ -47,7 +47,7 @@ func (r *RuleTask) Run() ([]Task, string, error) {
 			r.destination = r.defaultDestRegistry + "/" +
 				sourceURLs[0].GetRepo()
 		} else {
-			return nil, "", fmt.Errorf("the default registry and namespace should not be nil if you want to use them")
+			return nil, "", fmt.Errorf("the default registry should not be nil if you want to use them")
 		}
 	}
 

@@ -25,7 +25,7 @@ type Config struct {
 	// only images with selected architecture can be sync
 	archFilterList []string
 
-	// If the destination registry and namespace is not provided,
+	// If the destination is not provided,
 	// the source image will be synchronized to defaultDestRegistry with origin repo name and tag.
 	defaultDestRegistry string
 }

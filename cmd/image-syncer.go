@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logPath, configFile, authFile, imageFile, defaultRegistry, defaultNamespace string
+	logPath, configFile, authFile, imageFile, defaultRegistry string
 
 	procNum, retries int
 
@@ -50,8 +50,6 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&logPath, "log", "", "log file path (default in os.Stderr)")
 	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
 		"default destination registry url when destination registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
-	RootCmd.PersistentFlags().StringVar(&defaultNamespace, "namespace", os.Getenv("DEFAULT_NAMESPACE"),
-		"default destination namespace when destination namespace is not given in the config file, can also be set with DEFAULT_NAMESPACE environment value")
 	RootCmd.PersistentFlags().IntVarP(&procNum, "proc", "p", 5, "numbers of working goroutines")
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
 	RootCmd.PersistentFlags().StringArrayVar(&osFilterList, "os", []string{}, "os list to filter source tags, not works for docker v2 schema1 and OCI media")
