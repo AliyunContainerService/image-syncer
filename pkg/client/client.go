@@ -91,12 +91,12 @@ func (c *Client) Run() error {
 
 		if c.taskList.Len() != 0 {
 			// retry to handle task
-			c.logger.Infof("Start to retry sync tasks, please wait ...")
+			c.logger.Infof("Start to retry tasks, please wait ...")
 			c.openRoutinesHandleTaskAndWaitForFinish()
 		}
 	}
 
-	endMsg := fmt.Sprintf("Finished, %v sync tasks failed, cost %v.",
+	endMsg := fmt.Sprintf("Finished, %v tasks failed, cost %v.",
 		c.failedTaskList.Len(), time.Since(start).String())
 
 	c.logger.Infof(utils.Green(endMsg))
