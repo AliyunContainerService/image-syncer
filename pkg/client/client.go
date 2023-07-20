@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/task"
-
 	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
-
+	"github.com/AliyunContainerService/image-syncer/pkg/task"
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
+
+	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,7 @@ func (c *Client) Run() error {
 	endMsg := fmt.Sprintf("Finished, %v tasks failed, cost %v.",
 		c.failedTaskList.Len(), time.Since(start).String())
 
-	c.logger.Infof(utils.Green(endMsg))
+	c.logger.Infof(color.New(color.FgGreen).Sprintf(endMsg))
 
 	_, failedSyncTaskCountTotal := c.failedTaskCounter.Value()
 
@@ -141,8 +141,8 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 				nextTasks, message, err := tTask.Run()
 
 				count, total := c.taskCounter.Increase()
-				finishedNumString := utils.Green(fmt.Sprintf("%d", count))
-				totalNumString := utils.Green(fmt.Sprintf("%d", total))
+				finishedNumString := color.New(color.FgGreen).Sprintf("%d", count)
+				totalNumString := color.New(color.FgGreen).Sprintf("%d", total)
 
 				if err != nil {
 					c.failedTaskList.PushBack(tTask)
