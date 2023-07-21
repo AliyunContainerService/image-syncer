@@ -37,7 +37,7 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 	logger := NewFileLogger(logFile)
 
 	config, err := NewSyncConfig(configFile, authFile, imageFile,
-		defaultDestRegistry, osFilterList, archFilterList)
+		defaultDestRegistry, osFilterList, archFilterList, logger)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -62,21 +62,28 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 func (c *Client) Run() error {
 	start := time.Now()
 
-	for source, dest := range c.config.GetImageList() {
-		ruleTask, err := task.NewRuleTask(source, dest, c.config.defaultDestRegistry,
-			func(repository string) utils.Auth {
-				auth, exist := c.config.GetAuth(repository)
-				if !exist {
-					c.logger.Infof("Auth information not found for %v, access will be anonymous.", repository)
-				}
-				return auth
-			}, c.forceUpdate)
-		if err != nil {
-			return fmt.Errorf("failed to generate rule task for %s -> %s", source, dest)
-		}
+	imageListMap, err := c.config.GetImageList()
+	if err != nil {
+		return fmt.Errorf("failed to get image list: %v", err)
+	}
 
-		c.taskList.PushBack(ruleTask)
-		c.taskCounter.IncreaseTotal()
+	for source, destList := range imageListMap {
+		for _, dest := range destList {
+			ruleTask, err := task.NewRuleTask(source, dest, c.config.defaultDestRegistry,
+				func(repository string) utils.Auth {
+					auth, exist := c.config.GetAuth(repository)
+					if !exist {
+						c.logger.Infof("Auth information not found for %v, access will be anonymous.", repository)
+					}
+					return auth
+				}, c.forceUpdate)
+			if err != nil {
+				return fmt.Errorf("failed to generate rule task for %s -> %s", source, dest)
+			}
+
+			c.taskList.PushBack(ruleTask)
+			c.taskCounter.IncreaseTotal()
+		}
 	}
 
 	c.openRoutinesHandleTaskAndWaitForFinish()

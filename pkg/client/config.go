@@ -3,9 +3,10 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 
@@ -18,7 +19,7 @@ type Config struct {
 	AuthList map[string]utils.Auth `json:"auth" yaml:"auth"`
 
 	// a <source_repo>:<dest_repo> map
-	ImageList map[string]string `json:"images" yaml:"images"`
+	ImageList map[string]interface{} `json:"images" yaml:"images"`
 
 	// only images with selected os can be sync
 	osFilterList []string
@@ -32,13 +33,14 @@ type Config struct {
 
 // NewSyncConfig creates a Config struct
 func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry string,
-	osFilterList, archFilterList []string) (*Config, error) {
+	osFilterList, archFilterList []string, logger *logrus.Logger) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
 	}
 
 	if len(configFile) == 0 && len(authFilePath) == 0 {
-		log.Println("[Warning] No authentication information found because neither config.json nor auth.json provided, this may not work.")
+		logger.Warnf("[Warning] No authentication information found because neither " +
+			"config.json nor auth.json provided, image-syncer may not work fine.")
 	}
 
 	var config Config
@@ -117,9 +119,38 @@ func (c *Config) GetAuth(repository string) (utils.Auth, bool) {
 	return auth, exist
 }
 
-// GetImageList gets the ImageList map in Config
-func (c *Config) GetImageList() map[string]string {
-	return c.ImageList
+// GetImageList gets the ImageList map in Config, and will transform ImageList to map[string]string
+func (c *Config) GetImageList() (map[string][]string, error) {
+	result := map[string][]string{}
+
+	for source, dest := range c.ImageList {
+		convertErr := fmt.Errorf("invalid destination %v for source \"%v\", "+
+			"destination should only be string or []string", dest, source)
+
+		if destList, ok := dest.([]interface{}); ok {
+			// check if is destination is a []string
+			for _, d := range destList {
+				destStr, ok := d.(string)
+				if !ok {
+					return nil, convertErr
+				}
+
+				result[source] = append(result[source], destStr)
+			}
+
+			// empty slice is the same with an empty string
+			if len(destList) == 0 {
+				result[source] = append(result[source], "")
+			}
+		} else if destStr, ok := dest.(string); ok {
+			// check if is destination is a string
+			result[source] = append(result[source], destStr)
+		} else {
+			return nil, convertErr
+		}
+	}
+
+	return result, nil
 }
 
 func expandEnv(authMap map[string]utils.Auth) map[string]utils.Auth {
