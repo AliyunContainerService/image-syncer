@@ -14,10 +14,14 @@ const (
 func NewFileLogger(path string) *logrus.Logger {
 	logger := logrus.New()
 
+	// disable color
+	if len(path) != 0 {
+		_ = os.Setenv("NO_COLOR", "true")
+	}
+
 	logger.Formatter = &logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: logTimestampFormat,
-		ForceColors:     true,
 	}
 
 	if file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666); err == nil {
