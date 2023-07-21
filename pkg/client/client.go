@@ -67,6 +67,7 @@ func (c *Client) Run() error {
 
 	for source, destList := range imageListMap {
 		for _, dest := range destList {
+			// TODO: support multiple destinations for one task
 			ruleTask, err := task.NewRuleTask(source, dest,
 				func(repository string) utils.Auth {
 					auth, exist := c.config.GetAuth(repository)

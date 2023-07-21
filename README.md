@@ -48,22 +48,20 @@ make
 # Get usage information
 ./image-syncer -h
 
-# With this command, configure file path is "./config.json", default target registry is "registry.cn-beijing.aliyuncs.com",
-# default target namespace is "ruohe", 6 of goroutine numbers, every failed task will be retried 3 times.
-./image-syncer --proc=6 --auth=./auth.json --images=./images.json --registry=registry.cn-beijing.aliyuncs.com --retries=3
+./image-syncer --proc=6 --auth=./auth.json --images=./images.json --auth=./auth.json --retries=3
 ```
 
 ### Configure Files
 
 Image-syncer supports `--auth` and `--images` flag for passing authentication file and image sync configuration file, both of which supports YAML and JSON format. Seperate authentication information is more flexible to reuse it in different sync missions.
 
-> The older version (< v1.2.0) of configuration file is still supported via `--config` flag, you can find the example in [config.yaml](./example/config.yaml) and [config.json](./example/config.json).
+> The older version (< v1.2.0) of configuration file is still supported via `--config` flag, you can find the example in [config.yaml](examples/config.yaml) and [config.json](examples/config.json).
 
 #### Authentication file
 
 Authentication file holds all the authentication information for each registry. For each registry (or namespace), there is a object which contains username and password. For each images sync rule in image sync configuration file, image-syncer will try to find a match in all the authentication information and use the best(longest) fit one. Access will be anonymous if no authentication information is found.
 
-You can find the example in [auth.yaml](./example/auth.yaml) and [auth.json](./example/auth.json), here we use [auth.yaml](./example/auth.yaml) for explaination:
+You can find the example in [auth.yaml](examples/auth.yaml) and [auth.json](examples/auth.json), here we use [auth.yaml](examples/auth.yaml) for explaination:
 
 ```yaml
 quay.io: # This "registry" or "registry/namespace" string should be the same as registry or registry/namespace used below in image sync rules. And if an url match multiple objects, the "registry/namespace" string will actually be used.
@@ -84,24 +82,27 @@ quay.io/coreos:
 
 #### Image sync configuration file
 
-Image sync configuration file defines all the image synch rules. Each rule is a key/value pair, of which the key refers to "the source images url" and the value refers to "the destination images url". The source/destination images url is mostly the same with the url we use
+Image sync configuration file defines all the image sync rules. Each rule is a key/value pair, of which the key refers to "the source images url" and the value refers to "the destination images url". The source/destination images url is mostly the same with the url we use
 in `docker pull/push` commands, but still something different in the "tags and digest" part:
 
-1. The source images url cannot be empty.
+1. Neither of the source images url and the destination images url should be empty.
 2. If the source images url contains no tags or digest, all the tags of source repository will be synced.
 3. The source images url can have more than one tags, which should be seperated by comma, only the specified tags will be synced.
-4. The source images url can at most one digest, and the destination url should only have no digest or the same digest at the same time.
-5. If the destination url has no digest or tags, it means the source images will keep the same tags or digest after being synced.
-6. The destination url can have more than one tags, the number of which must be the same with the tags in the source images url, then all the source images' tags will be changed to a new one (correspond from left to right).
-7. If the destination url is empty, all the source images will be synced to the "default registry" (by command line parameter) and in the same repository with the source images url.
+4. The source images url can at most one digest, and the destination images url should only have no digest or the same digest at the same time.
+5. If the destination images url has no digest or tags, it means the source images will keep the same tags or digest after being synced.
+6. The destination images url can have more than one tags, the number of which must be the same with the tags in the source images url, then all the source images' tags will be changed to a new one (correspond from left to right).
+7. The "destination images url" can also be an array, each of which follows the rules above.
 
-You can find the example in [images.yaml](./example/images.yaml) and [images.json](./example/images.json), here we use [images.yaml](./example/images.yaml) for explaination:
+You can find the example in [images.yaml](examples/images.yaml) and [images.json](examples/images.json), here we use [images.yaml](examples/images.yaml) for explaination:
 
 ```yaml
 quay.io/coreos/kube-rbac-proxy: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy:v1.0: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy:v1.0,v2.0: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a14a0212b0d4fce8d729598c: quay.io/ruohe/kube-rbac-proxy
+quay.io/coreos/kube-rbac-proxy:v1.1:
+  - quay.io/ruohe/kube-rbac-proxy1
+  - quay.io/ruohe/kube-rbac-proxy2
 ```
 
 ### Parameters
@@ -120,9 +121,6 @@ quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a1
                  config file is at "current/working/directory/images.json". This flag need to be pair used with --auth.
 
     --log        Set the path of log file, logs will be printed to Stderr by default
-
-    --registry   Set default-registry, default-registry can also be set by environment variable "DEFAULT_REGISTRY",
-                 if they are both set at the same time, "DEFAULT_REGISTRY" will not work at this synchronization.
 
     --proc       Number of goroutines, default value is 5
 

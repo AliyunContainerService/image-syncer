@@ -48,16 +48,14 @@ make
 # 获得帮助信息
 ./image-syncer -h
 
-# 设置配置文件为config.json，默认registry为registry.cn-beijing.aliyuncs.com
-# 默认namespace为ruohe，并发数为6
-./image-syncer --proc=6 --auth=./auth.json --images=./images.json --registry=registry.cn-beijing.aliyuncs.com --retries=3
+./image-syncer --proc=6 --auth=./auth.json --images=./images.json --auth=./auth.json --retries=3
 ```
 
 ### 配置文件
 
 为了提高配置的灵活性，image-syncer 支持通过 `--auth` 参数以文件的形式传入认证信息，同时通过 `--images` 参数以文件的形式传入镜像同步规则。两种配置文件都同时支持 YAML 和 JSON 两种格式，其中认证信息是可选的，镜像同步规则是必须的。通过两者分离的方式，可以做到认证信息的灵活复用
 
-> 1.2.0 版本之前主要使用的、通过 `--config` 参数以一个配置文件同时传入认证信息和镜像同步规则的格式也是兼容的，可以参考 [config.yaml](./example/config.yaml) 和 [config.json](./example/config.json)
+> 1.2.0 版本之前主要使用的、通过 `--config` 参数以一个配置文件同时传入认证信息和镜像同步规则的格式也是兼容的，可以参考 [config.yaml](examples/config.yaml) 和 [config.json](examples/config.json)
 
 #### 认证信息
 
@@ -65,7 +63,7 @@ make
 
 > 注意，通常镜像源仓库需要具有 pull 以及访问 tags 权限，镜像目标仓库需要拥有 push 以及创建仓库权限；如果对应仓库没有提供认证信息，则默认匿名访问
 
-认证信息文件通过 `--auth` 参数传入，具体文件样例可以参考 [auth.yaml](./example/auth.yaml) 和 [auth.json](./example/auth.json)，这里以 [auth.yaml](./example/auth.yaml) 为例：
+认证信息文件通过 `--auth` 参数传入，具体文件样例可以参考 [auth.yaml](examples/auth.yaml) 和 [auth.json](examples/auth.json)，这里以 [auth.yaml](examples/auth.yaml) 为例：
 
 ```yaml
 quay.io: #支持 "registry" 和 "registry/namespace"（v1.0.3之后的版本） 的形式，image-syncer 会自动为镜像同步规则中的每个源/目标 url 查找认证信息，并且使用对应认证信息进行进行访问，如果匹配到了多个，用“最长匹配”的那个作为最终结果
@@ -88,21 +86,24 @@ quay.io/coreos:
 
 每条镜像同步规则为一个 “源镜像 url: 目标镜像 url” 的键值对。无论是源镜像 url 还是目标镜像 url，字符串格式都和 docker pull 命令所使用的镜像 url 大致相同（registry/repository:tag、registry/repository@digest），但在 tag 和 digest 配置上和 docker pull 所使用的 url 存在区别，这里对整体逻辑进行描述：
 
-1. 源镜像 url 不能为空
+1. 源镜像 url、目标镜像 url 都不能为空
 2. 源镜像 url 不包含 tag 和 digest 时，代表同步源镜像 repository 中的所有镜像 tag
 3. 源镜像 url 可以包含一个或多个 tag，多个 tag 之间用英文逗号分隔，代表同步源镜像 repository 中的多个指定镜像 tag
 4. 源镜像 url 可以但最多只能包含一个 digest，此时如果目标镜像 url 包含 digest，digest 必须一致
 5. 目标镜像 url 可以不包含 tag 和 digest，表示所有需同步的镜像保持其镜像 tag 或者 digest 不变
 6. 目标镜像 url 可以包含多个 tag 或者 digest，数量必须与源镜像 url 中的 tag 数量相同，此时，同步后的镜像 tag 会被修改成目标镜像 url 中指定的镜像 tag（按照从左到右顺序对应）
-7. 如果目标镜像 url 为空，会将镜像同步到 “默认 registry”（命令行参数指定） 的、跟源镜像 url 相同的 repository 下，并且保持镜像 tag 一致
+8. 支持同时指定多个目标镜像 url，此时 "目标镜像 url" 为数组的形式，数组的每个元素（字符串）都需要满足前面的规则
 
-镜像同步规则文件通过 `--images` 参数传入，具体文件样例可以参考 [images.yaml](./example/images.yaml) 和 [images.json](./example/images.json)，这里以 [images.yaml](./example/images.yaml) 为例。 示例如下：
+镜像同步规则文件通过 `--images` 参数传入，具体文件样例可以参考 [images.yaml](examples/images.yaml) 和 [images.json](examples/images.json)，这里以 [images.yaml](examples/images.yaml) 为例。 示例如下：
 
 ```yaml
 quay.io/coreos/kube-rbac-proxy: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy:v1.0: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy:v1.0,v2.0: quay.io/ruohe/kube-rbac-proxy
 quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a14a0212b0d4fce8d729598c: quay.io/ruohe/kube-rbac-proxy
+quay.io/coreos/kube-rbac-proxy:v1.1:
+  - quay.io/ruohe/kube-rbac-proxy1
+  - quay.io/ruohe/kube-rbac-proxy2
 ```
 
 ### 更多参数
@@ -120,8 +121,6 @@ quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a1
     --images     设置用户提供的镜像同步规则文件所在路径，使用之前需要创建此文件，默认为当前工作目录下的images.json文件
 
     --log        打印出来的log文件路径，默认打印到标准错误输出，如果将日志打印到文件将不会有命令行输出，此时需要通过cat对应的日志文件查看
-
-    --registry   设置默认的目标registry，当配置文件内一条images规则的目标仓库为空，并且默认namespace也不为空时有效，可以通过环境变量DEFAULT_REGISTRY设置，同时传入命令行参数会优先使用命令行参数值
 
     --proc       并发数，进行镜像同步的并发goroutine数量，默认为5
 
