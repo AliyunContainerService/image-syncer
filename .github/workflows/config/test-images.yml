@@ -8,4 +8,6 @@ alpine:3.18.2: "localhost:5000/image-syncer-test/alpine"
 hybridnetdev/hybridnet:v0.8.2: "localhost:5000/image-syncer-test/hybridnet"
 
 # OCI image
-hybridnetdev/hybridnet@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a14a0212b0d4fce8d729598c: "localhost:5000/image-syncer-test/hybridnet"
+hybridnetdev/hybridnet@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a14a0212b0d4fce8d729598c:
+  - "localhost:5000/image-syncer-test/hybridnet"
+  - "localhost:5000/image-syncer-test/hybridnet:v0.8.2-test"
