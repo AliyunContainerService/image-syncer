@@ -31,13 +31,11 @@ type Client struct {
 
 // NewSyncClient creates a synchronization client
 func NewSyncClient(configFile, authFile, imageFile, logFile string,
-	routineNum, retries int, defaultDestRegistry string,
-	osFilterList, archFilterList []string, forceUpdate bool) (*Client, error) {
+	routineNum, retries int, osFilterList, archFilterList []string, forceUpdate bool) (*Client, error) {
 
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, authFile, imageFile,
-		defaultDestRegistry, osFilterList, archFilterList, logger)
+	config, err := NewSyncConfig(configFile, authFile, imageFile, osFilterList, archFilterList, logger)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -69,7 +67,7 @@ func (c *Client) Run() error {
 
 	for source, destList := range imageListMap {
 		for _, dest := range destList {
-			ruleTask, err := task.NewRuleTask(source, dest, c.config.defaultDestRegistry,
+			ruleTask, err := task.NewRuleTask(source, dest,
 				func(repository string) utils.Auth {
 					auth, exist := c.config.GetAuth(repository)
 					if !exist {
@@ -78,7 +76,7 @@ func (c *Client) Run() error {
 					return auth
 				}, c.forceUpdate)
 			if err != nil {
-				return fmt.Errorf("failed to generate rule task for %s -> %s", source, dest)
+				return fmt.Errorf("failed to generate rule task for %s -> %s: %v", source, dest, err)
 			}
 
 			c.taskList.PushBack(ruleTask)

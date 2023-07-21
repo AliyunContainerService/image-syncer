@@ -12,25 +12,26 @@ type RuleTask struct {
 	source      string
 	destination string
 
-	defaultDestRegistry string
-
 	getAuthFunc func(repository string) utils.Auth
 
 	forceUpdate bool
 }
 
-func NewRuleTask(source, destination, defaultDestRegistry string,
+func NewRuleTask(source, destination string,
 	getAuthFunc func(repository string) utils.Auth, forceUpdate bool) (*RuleTask, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source url should not be empty")
 	}
 
+	if destination == "" {
+		return nil, fmt.Errorf("destination url should not be empty")
+	}
+
 	return &RuleTask{
-		source:              source,
-		destination:         destination,
-		defaultDestRegistry: defaultDestRegistry,
-		getAuthFunc:         getAuthFunc,
-		forceUpdate:         forceUpdate,
+		source:      source,
+		destination: destination,
+		getAuthFunc: getAuthFunc,
+		forceUpdate: forceUpdate,
 	}, nil
 }
 
@@ -39,16 +40,6 @@ func (r *RuleTask) Run() ([]Task, string, error) {
 	sourceURLs, err := utils.GenerateRepoURLs(r.source, r.listAllTags)
 	if err != nil {
 		return nil, "", fmt.Errorf("source url %s format error: %v", r.source, err)
-	}
-
-	// if dest is not specific, use default registry and repo
-	if r.destination == "" {
-		if r.defaultDestRegistry != "" {
-			r.destination = r.defaultDestRegistry + "/" +
-				sourceURLs[0].GetRepo()
-		} else {
-			return nil, "", fmt.Errorf("the default registry should not be nil if you want to use them")
-		}
 	}
 
 	// if destination tags or digest is not specific, reuse tags or digest of sourceURLs

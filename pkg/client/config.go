@@ -25,14 +25,10 @@ type Config struct {
 	osFilterList []string
 	// only images with selected architecture can be sync
 	archFilterList []string
-
-	// If the destination is not provided,
-	// the source image will be synchronized to defaultDestRegistry with origin repo name and tag.
-	defaultDestRegistry string
 }
 
 // NewSyncConfig creates a Config struct
-func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry string,
+func NewSyncConfig(configFile, authFilePath, imageFilePath string,
 	osFilterList, archFilterList []string, logger *logrus.Logger) (*Config, error) {
 	if len(configFile) == 0 && len(imageFilePath) == 0 {
 		return nil, fmt.Errorf("neither config.json nor images.json is provided")
@@ -62,7 +58,6 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath, defaultDestRegistry 
 		}
 	}
 
-	config.defaultDestRegistry = defaultDestRegistry
 	config.osFilterList = osFilterList
 	config.archFilterList = archFilterList
 
@@ -127,6 +122,8 @@ func (c *Config) GetImageList() (map[string][]string, error) {
 		convertErr := fmt.Errorf("invalid destination %v for source \"%v\", "+
 			"destination should only be string or []string", dest, source)
 
+		emptyDestErr := fmt.Errorf("empty destination is not supported for source: %v", source)
+
 		if destList, ok := dest.([]interface{}); ok {
 			// check if is destination is a []string
 			for _, d := range destList {
@@ -135,15 +132,21 @@ func (c *Config) GetImageList() (map[string][]string, error) {
 					return nil, convertErr
 				}
 
+				if len(destStr) == 0 {
+					return nil, emptyDestErr
+				}
 				result[source] = append(result[source], destStr)
 			}
 
 			// empty slice is the same with an empty string
 			if len(destList) == 0 {
-				result[source] = append(result[source], "")
+				return nil, emptyDestErr
 			}
 		} else if destStr, ok := dest.(string); ok {
 			// check if is destination is a string
+			if len(destStr) == 0 {
+				return nil, emptyDestErr
+			}
 			result[source] = append(result[source], destStr)
 		} else {
 			return nil, convertErr

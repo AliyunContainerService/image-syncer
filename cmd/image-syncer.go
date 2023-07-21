@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logPath, configFile, authFile, imageFile, defaultRegistry string
+	logPath, configFile, authFile, imageFile string
 
 	procNum, retries int
 
@@ -33,7 +33,7 @@ var RootCmd = &cobra.Command{
 
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imageFile, logPath, procNum, retries,
-			defaultRegistry, utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList), forceUpdate)
+			utils.RemoveEmptyItems(osFilterList), utils.RemoveEmptyItems(archFilterList), forceUpdate)
 		if err != nil {
 			return fmt.Errorf("init sync client error: %v", err)
 		}
@@ -48,8 +48,6 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&authFile, "auth", "", "auth file path. This flag need to be pair used with --images.")
 	RootCmd.PersistentFlags().StringVar(&imageFile, "images", "", "images file path. This flag need to be pair used with --auth")
 	RootCmd.PersistentFlags().StringVar(&logPath, "log", "", "log file path (default in os.Stderr)")
-	RootCmd.PersistentFlags().StringVar(&defaultRegistry, "registry", os.Getenv("DEFAULT_REGISTRY"),
-		"default destination registry url when destination registry is not given in the config file, can also be set with DEFAULT_REGISTRY environment value")
 	RootCmd.PersistentFlags().IntVarP(&procNum, "proc", "p", 5, "numbers of working goroutines")
 	RootCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 2, "times to retry failed task")
 	RootCmd.PersistentFlags().StringArrayVar(&osFilterList, "os", []string{}, "os list to filter source tags, not works for docker v2 schema1 and OCI media")
