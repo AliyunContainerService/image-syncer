@@ -34,7 +34,7 @@
 
 ### 手动编译
 
-```
+```bash
 go get github.com/AliyunContainerService/image-syncer
 cd $GOPATH/github.com/AliyunContainerService/image-syncer
 
@@ -44,7 +44,7 @@ make
 
 ### 命令用例
 
-```shell
+```bash
 # 获得帮助信息
 ./image-syncer -h
 
@@ -124,8 +124,6 @@ quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a1
     --registry   设置默认的目标registry，当配置文件内一条images规则的目标仓库为空，并且默认namespace也不为空时有效，可以通过环境变量DEFAULT_REGISTRY设置，同时传入命令行参数会优先使用命令行参数值
 
     --proc       并发数，进行镜像同步的并发goroutine数量，默认为5
-
-    --records    指定传输过程中保存已传输完成镜像信息（blob）的文件输出/读取路径，默认输出到当前工作目录，一个records记录了对应目标仓库的已迁移信息，可以用来进行连续的多次迁移（会节约大量时间，但不要把之前自己没执行过的records文件拿来用），如果有unknown blob之类的错误，可以删除该文件重新尝试，image-syncer 在 >= v1.1.0 版本中移除了对于records文件的依赖
 
     --retries    失败同步任务的重试次数，默认为2，重试会在所有任务都被执行一遍之后开始，并且也会重新尝试对应次数生成失败任务的生成。一些偶尔出现的网络错误比如io timeout、TLS handshake timeout，都可以通过设置重试次数来减少失败的任务数量
 
