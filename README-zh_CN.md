@@ -138,3 +138,7 @@ quay.io/coreos/kube-rbac-proxy:/a+/: quay.io/ruohe/kube-rbac-proxy
 ### FAQs
 
 同步中常见的问题汇总在[FAQs 文档](./FAQs.md)中
+
+### Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AliyunContainerService/image-syncer&type=Date)](https://star-history.com/#AliyunContainerService/image-syncer)

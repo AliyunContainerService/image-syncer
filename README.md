@@ -139,3 +139,7 @@ quay.io/coreos/kube-rbac-proxy:/a+/: quay.io/ruohe/kube-rbac-proxy
 ### FAQs
 
 Frequently asked questions are listed in [FAQs](./FAQs.md)
+
+### Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AliyunContainerService/image-syncer&type=Date)](https://star-history.com/#AliyunContainerService/image-syncer)
