@@ -62,6 +62,11 @@ func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository
 				return nil, fmt.Errorf("invalid tag regex url format %v, regex must start and end with \"/\"", url)
 			}
 
+			_, err = reference.ParseNormalizedNamed(slice[0])
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse repository url %v: %v", slice[0], err)
+			}
+
 			urlWithoutTagOrDigest = slice[0]
 			regexStr := strings.TrimSuffix(slice[1], "/")
 			regex, err := regexp.Compile(regexStr)
