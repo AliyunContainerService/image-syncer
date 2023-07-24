@@ -54,6 +54,7 @@ func (r *RuleTask) Run() ([]Task, string, error) {
 		return nil, "", fmt.Errorf("source url %s format error: %v", r.source, err)
 	}
 
+	// TODO: remove duplicated sourceURL and destinationURL pair?
 	if err = checkSourceAndDestinationURLs(sourceURLs, destinationURLs); err != nil {
 		return nil, "", fmt.Errorf("failed to check source and destination urls for %s:%s: %v",
 			r.source, r.destination, err)

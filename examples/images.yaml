@@ -5,3 +5,4 @@ quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a1
 quay.io/coreos/kube-rbac-proxy:v1.1:
   - quay.io/ruohe/kube-rbac-proxy1
   - quay.io/ruohe/kube-rbac-proxy2
+quay.io/coreos/kube-rbac-proxy:/a+/: quay.io/ruohe/kube-rbac-proxy

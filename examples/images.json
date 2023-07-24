@@ -2,5 +2,6 @@
     "quay.io/coreos/kube-rbac-proxy": "quay.io/ruohe/kube-rbac-proxy",
     "quay.io/coreos/kube-rbac-proxy:v1.0": "quay.io/ruohe/kube-rbac-proxy",
     "quay.io/coreos/kube-rbac-proxy:v1.0,v2.0": "quay.io/ruohe/kube-rbac-proxy",
-    "quay.io/coreos/kube-rbac-proxy:v1.1": ["quay.io/ruohe/kube-rbac-proxy1", "quay.io/ruohe/kube-rbac-proxy2"]
+    "quay.io/coreos/kube-rbac-proxy:v1.1": ["quay.io/ruohe/kube-rbac-proxy1", "quay.io/ruohe/kube-rbac-proxy2"],
+    "quay.io/coreos/kube-rbac-proxy:/a+/": "quay.io/ruohe/kube-rbac-proxy"
 }

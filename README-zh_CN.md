@@ -90,8 +90,9 @@ quay.io/coreos:
 2. 源镜像 url 不包含 tag 和 digest 时，代表同步源镜像 repository 中的所有镜像 tag
 3. 源镜像 url 可以包含一个或多个 tag，多个 tag 之间用英文逗号分隔，代表同步源镜像 repository 中的多个指定镜像 tag
 4. 源镜像 url 可以但最多只能包含一个 digest，此时如果目标镜像 url 包含 digest，digest 必须一致
-5. 目标镜像 url 可以不包含 tag 和 digest，表示所有需同步的镜像保持其镜像 tag 或者 digest 不变
-6. 目标镜像 url 可以包含多个 tag 或者 digest，数量必须与源镜像 url 中的 tag 数量相同，此时，同步后的镜像 tag 会被修改成目标镜像 url 中指定的镜像 tag（按照从左到右顺序对应）
+5. 源镜像 url 的 "tag" 可以是一个正则表达式，需要额外在首尾加上 `/` 字符作为标识，源镜像 repository 中所有匹配正则表达式的镜像 tag 会被同步，不支持多个正则表达式
+6. 目标镜像 url 可以不包含 tag 和 digest，表示所有需同步的镜像保持其镜像 tag 或者 digest 不变
+7. 目标镜像 url 可以包含多个 tag 或者 digest，数量必须与源镜像 url 中的 tag 数量相同，此时，同步后的镜像 tag 会被修改成目标镜像 url 中指定的镜像 tag（按照从左到右顺序对应）
 8. 支持同时指定多个目标镜像 url，此时 "目标镜像 url" 为数组的形式，数组的每个元素（字符串）都需要满足前面的规则
 
 镜像同步规则文件通过 `--images` 参数传入，具体文件样例可以参考 [images.yaml](examples/images.yaml) 和 [images.json](examples/images.json)，这里以 [images.yaml](examples/images.yaml) 为例。 示例如下：
@@ -104,6 +105,7 @@ quay.io/coreos/kube-rbac-proxy@sha256:14b267eb38aa85fd12d0e168fffa2d8a6187ac53a1
 quay.io/coreos/kube-rbac-proxy:v1.1:
   - quay.io/ruohe/kube-rbac-proxy1
   - quay.io/ruohe/kube-rbac-proxy2
+quay.io/coreos/kube-rbac-proxy:/a+/: quay.io/ruohe/kube-rbac-proxy
 ```
 
 ### 更多参数
