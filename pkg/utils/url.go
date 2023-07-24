@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/opencontainers/go-digest"
@@ -28,7 +29,6 @@ type RepoURL struct {
 // and empty slice will be returned if no tags or digest is provided.
 func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository string,
 ) (tagsOrDigest []string, err error)) ([]*RepoURL, error) {
-
 	var result []*RepoURL
 	ref, err := reference.ParseNormalizedNamed(url)
 
@@ -55,21 +55,47 @@ func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository
 		tagsOrDigest = append(tagsOrDigest, allTags...)
 	} else {
 		// url might have special tags
+		if strings.Contains(url, ":/") {
+			// regex exist, /*/, etc.
+			slice := strings.SplitN(url, ":/", 2)
+			if len(slice) != 2 || !strings.HasSuffix(slice[1], "/") {
+				return nil, fmt.Errorf("invalid tag regex url format %v, regex must start and end with \"/\"", url)
+			}
 
-		// multiple tags exist
-		slice := strings.SplitN(url, ",", -1)
-		if len(slice) < 1 {
-			return nil, fmt.Errorf("invalid repository url: %v", url)
+			urlWithoutTagOrDigest = slice[0]
+			regexStr := strings.TrimSuffix(slice[1], "/")
+			regex, err := regexp.Compile(regexStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid tag regex: \"%v\": %v", regexStr, err)
+			}
+
+			registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(urlWithoutTagOrDigest)
+			allTags, err := externalTagsOrDigest(registry, repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get external tags: %v", err)
+			}
+
+			for _, t := range allTags {
+				if regex.MatchString(t) {
+					tagsOrDigest = append(tagsOrDigest, t)
+				}
+			}
+		} else {
+			// multiple tags exist
+			slice := strings.SplitN(url, ",", -1)
+			if len(slice) < 1 {
+				return nil, fmt.Errorf("invalid repository url: %v", url)
+			}
+
+			ref, err = reference.ParseNormalizedNamed(slice[0])
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse first tag with url %v: %v", slice[0], err)
+			}
+
+			urlWithoutTagOrDigest = ref.(reference.NamedTagged).Name()
+			tagsOrDigest = append(tagsOrDigest, ref.(reference.NamedTagged).Tag())
+			tagsOrDigest = append(tagsOrDigest, slice[1:]...)
 		}
-
-		ref, err = reference.ParseNormalizedNamed(slice[0])
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse first tag with url %v: %v", slice[0], err)
-		}
-
-		urlWithoutTagOrDigest = ref.(reference.NamedTagged).Name()
-		tagsOrDigest = append(tagsOrDigest, ref.(reference.NamedTagged).Tag())
-		tagsOrDigest = append(tagsOrDigest, slice[1:]...)
 	}
 
 	registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(urlWithoutTagOrDigest)

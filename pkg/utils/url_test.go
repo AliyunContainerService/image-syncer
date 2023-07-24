@@ -17,11 +17,15 @@ func TestURL(t *testing.T) {
 		"127.0.0.1:300/library/nginx:v1,v2",
 		"registry.cn-beijing.aliyuncs.com/hhyasdf/hybridnet@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e",
 		"nginx",
+		"test-regex/test:/b+/",
 	}
 
 	var repoURLs []*RepoURL
 	for _, url := range urls {
 		tmpUrls, err := GenerateRepoURLs(url, func(registry, repository string) (tags []string, err error) {
+			if registry == "test-regex" {
+				return []string{"aaa", "bbb"}, nil
+			}
 			return []string{"latest"}, nil
 		})
 		if err != nil {
@@ -54,4 +58,5 @@ func TestURL(t *testing.T) {
 	assert.Equal(t, "hhyasdf/hybridnet",
 		repoURLs[7].GetRepo())
 	assert.Equal(t, DockerHubURL, repoURLs[8].GetRegistry())
+	assert.Equal(t, "bbb", repoURLs[9].GetTagOrDigest())
 }
