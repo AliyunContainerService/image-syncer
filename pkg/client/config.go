@@ -135,7 +135,7 @@ func (c *Config) GetImageList() (map[string][]string, error) {
 				if len(destStr) == 0 {
 					return nil, emptyDestErr
 				}
-				result[source] = append(result[source], destStr)
+				result[source] = append(result[source], os.ExpandEnv(destStr))
 			}
 
 			// empty slice is the same with an empty string
@@ -147,7 +147,7 @@ func (c *Config) GetImageList() (map[string][]string, error) {
 			if len(destStr) == 0 {
 				return nil, emptyDestErr
 			}
-			result[source] = append(result[source], destStr)
+			result[source] = append(result[source], os.ExpandEnv(destStr))
 		} else {
 			return nil, convertErr
 		}
