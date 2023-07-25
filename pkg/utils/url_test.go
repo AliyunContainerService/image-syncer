@@ -18,6 +18,8 @@ func TestURL(t *testing.T) {
 		"registry.cn-beijing.aliyuncs.com/hhyasdf/hybridnet@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e",
 		"nginx",
 		"test-regex/test:/b+/",
+		"registry.cn-beijing.aliyuncs.com/hhyasdf/hybridnet:v1.2@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e,v1.3@sha256:df2ef9e979fc063645dcbed51372233c6bcf4ab49308c0478702565e96b9bc9e",
+		"registry.cn-beijing.aliyuncs.com/hhyasdf/hybridnet:v1.2@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e,v1.3",
 	}
 
 	var repoURLs []*RepoURL
@@ -59,4 +61,8 @@ func TestURL(t *testing.T) {
 		repoURLs[7].GetRepo())
 	assert.Equal(t, DockerHubURL, repoURLs[8].GetRegistry())
 	assert.Equal(t, "bbb", repoURLs[9].GetTagOrDigest())
+	assert.Equal(t, "v1.2@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e", repoURLs[10].GetTagOrDigest())
+	assert.Equal(t, "v1.3@sha256:df2ef9e979fc063645dcbed51372233c6bcf4ab49308c0478702565e96b9bc9e", repoURLs[11].GetTagOrDigest())
+	assert.Equal(t, "v1.2@sha256:df2ef9e979fc063645dcbed51374233c6bcf4ab49308c0478702565e96b9bc9e", repoURLs[12].GetTagOrDigest())
+	assert.Equal(t, "v1.3", repoURLs[13].GetTagOrDigest())
 }

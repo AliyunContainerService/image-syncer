@@ -30,29 +30,36 @@ type RepoURL struct {
 func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository string,
 ) (tagsOrDigest []string, err error)) ([]*RepoURL, error) {
 	var result []*RepoURL
-	ref, err := reference.ParseNormalizedNamed(url)
 
 	var tagsOrDigest []string
 	var urlWithoutTagOrDigest string
 
-	if canonicalRef, ok := ref.(reference.Canonical); ok {
-		// url has digest
-		tagsOrDigest = append(tagsOrDigest, canonicalRef.Digest().String())
-		urlWithoutTagOrDigest = canonicalRef.Name()
-	} else if taggedRef, ok := ref.(reference.NamedTagged); ok {
-		// url has one normal tag
-		tagsOrDigest = append(tagsOrDigest, taggedRef.Tag())
-		urlWithoutTagOrDigest = taggedRef.Name()
-	} else if err == nil {
-		// url has no specified digest or tag
-		registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(url)
-		allTags, err := externalTagsOrDigest(registry, repo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get external tags: %v", err)
+	ref, err := reference.ParseNormalizedNamed(url)
+	if err == nil {
+		tagOrDigest := make([]string, 0, 2)
+		if taggedRef, ok := ref.(reference.NamedTagged); ok {
+			// url has one normal tag
+			tagOrDigest = append(tagOrDigest, taggedRef.Tag())
+			urlWithoutTagOrDigest = taggedRef.Name()
 		}
+		if canonicalRef, ok := ref.(reference.Canonical); ok {
+			// url has digest
+			tagOrDigest = append(tagOrDigest, canonicalRef.Digest().String())
+			urlWithoutTagOrDigest = canonicalRef.Name()
+		}
+		if len(tagOrDigest) > 0 {
+			tagsOrDigest = append(tagsOrDigest, strings.Join(tagOrDigest, "@"))
+		} else {
+			// url has no specified digest or tag
+			registry, repo := getRegistryAndRepositoryFromURLWithoutTagOrDigest(url)
+			allTags, err := externalTagsOrDigest(registry, repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get external tags: %v", err)
+			}
 
-		urlWithoutTagOrDigest = url
-		tagsOrDigest = append(tagsOrDigest, allTags...)
+			urlWithoutTagOrDigest = url
+			tagsOrDigest = append(tagsOrDigest, allTags...)
+		}
 	} else {
 		// url might have special tags
 		if strings.Contains(url, ":/") {
@@ -97,8 +104,18 @@ func GenerateRepoURLs(url string, externalTagsOrDigest func(registry, repository
 				return nil, fmt.Errorf("failed to parse first tag with url %v: %v", slice[0], err)
 			}
 
-			urlWithoutTagOrDigest = ref.(reference.NamedTagged).Name()
-			tagsOrDigest = append(tagsOrDigest, ref.(reference.NamedTagged).Tag())
+			tagOrDigest := make([]string, 0, 2)
+			if taggedRef, ok := ref.(reference.NamedTagged); ok {
+				// url has one normal tag
+				tagOrDigest = append(tagOrDigest, taggedRef.Tag())
+				urlWithoutTagOrDigest = taggedRef.Name()
+			}
+			if canonicalRef, ok := ref.(reference.Canonical); ok {
+				// url has digest
+				tagOrDigest = append(tagOrDigest, canonicalRef.Digest().String())
+				urlWithoutTagOrDigest = canonicalRef.Name()
+			}
+			tagsOrDigest = append(tagsOrDigest, strings.Join(tagOrDigest, "@"))
 			tagsOrDigest = append(tagsOrDigest, slice[1:]...)
 		}
 	}
