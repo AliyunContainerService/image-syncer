@@ -99,7 +99,7 @@ func (r *RuleTask) listAllTags(sourceRegistry, sourceRepository string) ([]strin
 	auth := r.getAuthFunc(sourceRegistry + "/" + sourceRepository)
 
 	imageSource, err := sync.NewImageSource(sourceRegistry, sourceRepository, "",
-		auth.Username, auth.Password, auth.Insecure)
+		auth.Username, auth.Password, auth.IdentityToken, auth.Insecure)
 	if err != nil {
 		return nil, fmt.Errorf("generate %s image source error: %v", sourceRegistry+"/"+sourceRepository, err)
 	}

@@ -37,7 +37,7 @@ func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth 
 
 func (u *URLTask) Run() ([]Task, string, error) {
 	imageSource, err := sync.NewImageSource(u.source.GetRegistry(), u.source.GetRepo(), u.source.GetTagOrDigest(),
-		u.sourceAuth.Username, u.sourceAuth.Password, u.sourceAuth.Insecure)
+		u.sourceAuth.Username, u.sourceAuth.Password, u.sourceAuth.IdentityToken, u.sourceAuth.Insecure)
 	if err != nil {
 		return nil, "", fmt.Errorf("generate %s image source error: %v", u.source.String(), err)
 	}
