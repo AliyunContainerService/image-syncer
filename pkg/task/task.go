@@ -4,6 +4,15 @@ import (
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 )
 
+type Type string
+
+const (
+	URLType      = Type("URL")
+	ManifestType = Type("Manifest")
+	RuleType     = Type("Rule")
+	BlobType     = Type("Blob")
+)
+
 type Task interface {
 	// Run returns primary task and result message if success while primary task is not nil and can run immediately.
 	Run() ([]Task, string, error)
@@ -24,4 +33,6 @@ type Task interface {
 	GetDestination() *sync.ImageDestination
 
 	String() string
+
+	Type() Type
 }

@@ -90,3 +90,7 @@ func (b *BlobTask) String() string {
 	return fmt.Sprintf("synchronizing blob %s(%v) from %s to %s",
 		b.info.Digest, units.HumanSize(float64(b.info.Size)), b.GetSource().String(), b.GetDestination().String())
 }
+
+func (b *BlobTask) Type() Type {
+	return BlobType
+}

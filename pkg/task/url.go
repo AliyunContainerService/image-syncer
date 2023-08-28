@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 	"github.com/containers/image/v5/manifest"
 
@@ -17,15 +19,15 @@ type URLTask struct {
 	source      *utils.RepoURL
 	destination *utils.RepoURL
 
-	sourceAuth      utils.Auth
-	destinationAuth utils.Auth
+	sourceAuth      types.Auth
+	destinationAuth types.Auth
 
 	osFilterList, archFilterList []string
 
 	forceUpdate bool
 }
 
-func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth utils.Auth, forceUpdate bool) Task {
+func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth types.Auth, forceUpdate bool) Task {
 	return &URLTask{
 		source:          source,
 		destination:     destination,
@@ -80,6 +82,10 @@ func (u *URLTask) GetDestination() *sync.ImageDestination {
 
 func (u *URLTask) String() string {
 	return fmt.Sprintf("generating sync tasks from %s to %s", u.source, u.destination)
+}
+
+func (u *URLTask) Type() Type {
+	return URLType
 }
 
 // generateSyncTasks generates blob/manifest tasks.

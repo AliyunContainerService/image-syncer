@@ -8,6 +8,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/auth"
+
 	"github.com/containers/image/v5/manifest"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 
@@ -56,9 +58,9 @@ func NewImageDestination(registry, repository, tagOrDigest, username, password s
 	ctx := context.WithValue(context.Background(), utils.CTXKey("ImageDestination"), repository)
 	if username != "" && password != "" {
 		//fmt.Printf("Credential processing for %s/%s ...\n", registry, repository)
-		if utils.IsGCRPermanentServiceAccountToken(registry, username) {
+		if auth.IsGCRPermanentServiceAccountToken(registry, username) {
 			fmt.Printf("Getting oauth2 token for %s...\n", username)
-			token, expiry, err := utils.GCPTokenFromCreds(password)
+			token, expiry, err := auth.GCPTokenFromCreds(password)
 			if err != nil {
 				return nil, err
 			}

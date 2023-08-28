@@ -1,4 +1,4 @@
-package utils
+package types
 
 // Auth describes the authentication information of a registry or a repository
 type Auth struct {

@@ -1,13 +1,16 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
+	"gopkg.in/yaml.v2"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 	"github.com/AliyunContainerService/image-syncer/pkg/task"
-	"github.com/AliyunContainerService/image-syncer/pkg/utils"
-
 	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 )
@@ -20,6 +23,10 @@ type Client struct {
 	taskCounter       *concurrent.Counter
 	failedTaskCounter *concurrent.Counter
 
+	// TODO: print failed images? but this might be difficult because image sync rule might be illegal
+	successImagesList                     *concurrent.ImageList
+	successImagesFile, outputImagesFormat string
+
 	config *Config
 
 	routineNum int
@@ -30,12 +37,12 @@ type Client struct {
 }
 
 // NewSyncClient creates a synchronization client
-func NewSyncClient(configFile, authFile, imageFile, logFile string,
+func NewSyncClient(configFile, authFile, imagesFile, logFile, successImagesFile, outputImagesFormat string,
 	routineNum, retries int, osFilterList, archFilterList []string, forceUpdate bool) (*Client, error) {
 
 	logger := NewFileLogger(logFile)
 
-	config, err := NewSyncConfig(configFile, authFile, imageFile, osFilterList, archFilterList, logger)
+	config, err := NewSyncConfig(configFile, authFile, imagesFile, osFilterList, archFilterList, logger)
 	if err != nil {
 		return nil, fmt.Errorf("generate config error: %v", err)
 	}
@@ -46,6 +53,10 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 
 		taskCounter:       concurrent.NewCounter(0, 0),
 		failedTaskCounter: concurrent.NewCounter(0, 0),
+
+		successImagesList:  concurrent.NewImageList(),
+		successImagesFile:  successImagesFile,
+		outputImagesFormat: outputImagesFormat,
 
 		config:     config,
 		routineNum: routineNum,
@@ -60,16 +71,16 @@ func NewSyncClient(configFile, authFile, imageFile, logFile string,
 func (c *Client) Run() error {
 	start := time.Now()
 
-	imageListMap, err := c.config.GetImageList()
+	imageList, err := types.NewImageList(c.config.ImageList)
 	if err != nil {
 		return fmt.Errorf("failed to get image list: %v", err)
 	}
 
-	for source, destList := range imageListMap {
+	for source, destList := range imageList {
 		for _, dest := range destList {
 			// TODO: support multiple destinations for one task
 			ruleTask, err := task.NewRuleTask(source, dest,
-				func(repository string) utils.Auth {
+				func(repository string) types.Auth {
 					auth, exist := c.config.GetAuth(repository)
 					if !exist {
 						c.logger.Infof("Auth information not found for %v, access will be anonymous.", repository)
@@ -102,13 +113,31 @@ func (c *Client) Run() error {
 		}
 	}
 
-	endMsg := fmt.Sprintf("Finished, %v tasks failed, cost %v.",
+	endMsg := fmt.Sprintf("Synchronization finished, %v tasks failed, cost %v.",
 		c.failedTaskList.Len(), time.Since(start).String())
 
 	c.logger.Infof(color.New(color.FgGreen).Sprintf(endMsg))
 
-	_, failedSyncTaskCountTotal := c.failedTaskCounter.Value()
+	if c.successImagesFile != "" {
+		file, err := os.OpenFile(c.successImagesFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+		if err != nil {
+			return fmt.Errorf("open file %v error: %v", c.successImagesFile, err)
+		}
 
+		if c.outputImagesFormat == "json" {
+			encoder := json.NewEncoder(file)
+			if err := encoder.Encode(c.successImagesList.Content()); err != nil {
+				return fmt.Errorf("marshal success images error: %v", err)
+			}
+		} else {
+			encoder := yaml.NewEncoder(file)
+			if err := encoder.Encode(c.successImagesList.Content()); err != nil {
+				return fmt.Errorf("marshal success images error: %v", err)
+			}
+		}
+	}
+
+	_, failedSyncTaskCountTotal := c.failedTaskCounter.Value()
 	if failedSyncTaskCountTotal != 0 {
 		return fmt.Errorf("failed tasks exist")
 	}
@@ -155,12 +184,19 @@ func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
 					c.failedTaskCounter.IncreaseTotal()
 					c.logger.Errorf("Failed to executed %v: %v. Now %v/%v tasks have been processed.", tTask.String(), err,
 						finishedNumString, totalNumString)
-				} else if len(message) != 0 {
-					c.logger.Infof("Finish %v: %v. Now %v/%v tasks have been processed.", tTask.String(), message,
-						finishedNumString, totalNumString)
 				} else {
-					c.logger.Infof("Finish %v. Now %v/%v tasks have been processed.", tTask.String(),
-						finishedNumString, totalNumString)
+					if tTask.Type() == task.ManifestType {
+						// TODO: the ignored images will not be recorded in success images list
+						c.successImagesList.Add(tTask.GetSource().String(), tTask.GetDestination().String())
+					}
+
+					if len(message) != 0 {
+						c.logger.Infof("Finish %v: %v. Now %v/%v tasks have been processed.", tTask.String(), message,
+							finishedNumString, totalNumString)
+					} else {
+						c.logger.Infof("Finish %v. Now %v/%v tasks have been processed.", tTask.String(),
+							finishedNumString, totalNumString)
+					}
 				}
 
 				if nextTasks != nil {

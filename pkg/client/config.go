@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
@@ -16,7 +18,7 @@ import (
 // Config information of sync client
 type Config struct {
 	// the authentication information of each registry
-	AuthList map[string]utils.Auth `json:"auth" yaml:"auth"`
+	AuthList map[string]types.Auth `json:"auth" yaml:"auth"`
 
 	// a <source_repo>:<dest_repo> map
 	ImageList map[string]interface{} `json:"images" yaml:"images"`
@@ -97,8 +99,8 @@ func openAndDecode(filePath string, target interface{}) error {
 }
 
 // GetAuth gets the authentication information in Config
-func (c *Config) GetAuth(repository string) (utils.Auth, bool) {
-	auth := utils.Auth{}
+func (c *Config) GetAuth(repository string) (types.Auth, bool) {
+	auth := types.Auth{}
 	prefixLen := 0
 	exist := false
 
@@ -114,55 +116,13 @@ func (c *Config) GetAuth(repository string) (utils.Auth, bool) {
 	return auth, exist
 }
 
-// GetImageList gets the ImageList map in Config, and will transform ImageList to map[string]string
-func (c *Config) GetImageList() (map[string][]string, error) {
-	result := map[string][]string{}
-
-	for source, dest := range c.ImageList {
-		convertErr := fmt.Errorf("invalid destination %v for source \"%v\", "+
-			"destination should only be string or []string", dest, source)
-
-		emptyDestErr := fmt.Errorf("empty destination is not supported for source: %v", source)
-
-		if destList, ok := dest.([]interface{}); ok {
-			// check if is destination is a []string
-			for _, d := range destList {
-				destStr, ok := d.(string)
-				if !ok {
-					return nil, convertErr
-				}
-
-				if len(destStr) == 0 {
-					return nil, emptyDestErr
-				}
-				result[source] = append(result[source], os.ExpandEnv(destStr))
-			}
-
-			// empty slice is the same with an empty string
-			if len(destList) == 0 {
-				return nil, emptyDestErr
-			}
-		} else if destStr, ok := dest.(string); ok {
-			// check if is destination is a string
-			if len(destStr) == 0 {
-				return nil, emptyDestErr
-			}
-			result[source] = append(result[source], os.ExpandEnv(destStr))
-		} else {
-			return nil, convertErr
-		}
-	}
-
-	return result, nil
-}
-
-func expandEnv(authMap map[string]utils.Auth) map[string]utils.Auth {
-	result := make(map[string]utils.Auth)
+func expandEnv(authMap map[string]types.Auth) map[string]types.Auth {
+	result := make(map[string]types.Auth)
 
 	for registry, auth := range authMap {
 		pwd := os.ExpandEnv(auth.Password)
 		name := os.ExpandEnv(auth.Username)
-		newAuth := utils.Auth{
+		newAuth := types.Auth{
 			Username: name,
 			Password: pwd,
 			Insecure: auth.Insecure,

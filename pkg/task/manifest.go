@@ -96,3 +96,7 @@ func (m *ManifestTask) String() string {
 		m.GetSource().GetRegistry(), m.GetSource().GetRepository(), utils.AttachConnectorToTagOrDigest(srcTagOrDigest),
 		m.GetDestination().GetRegistry(), m.GetDestination().GetRepository(), utils.AttachConnectorToTagOrDigest(dstTagOrDigest))
 }
+
+func (m *ManifestTask) Type() Type {
+	return ManifestType
+}

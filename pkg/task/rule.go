@@ -3,6 +3,8 @@ package task
 import (
 	"fmt"
 
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
+
 	"github.com/AliyunContainerService/image-syncer/pkg/sync"
 	"github.com/AliyunContainerService/image-syncer/pkg/utils"
 )
@@ -12,13 +14,13 @@ type RuleTask struct {
 	source      string
 	destination string
 
-	getAuthFunc func(repository string) utils.Auth
+	getAuthFunc func(repository string) types.Auth
 
 	forceUpdate bool
 }
 
 func NewRuleTask(source, destination string,
-	getAuthFunc func(repository string) utils.Auth, forceUpdate bool) (*RuleTask, error) {
+	getAuthFunc func(repository string) types.Auth, forceUpdate bool) (*RuleTask, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source url should not be empty")
 	}
@@ -93,6 +95,10 @@ func (r *RuleTask) GetDestination() *sync.ImageDestination {
 
 func (r *RuleTask) String() string {
 	return fmt.Sprintf("analyzing image rule for %s -> %s", r.source, r.destination)
+}
+
+func (r *RuleTask) Type() Type {
+	return RuleType
 }
 
 func (r *RuleTask) listAllTags(sourceRegistry, sourceRepository string) ([]string, error) {
