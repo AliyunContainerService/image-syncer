@@ -115,10 +115,9 @@ func (c *Client) Run() error {
 
 	endMsg := fmt.Sprintf("Synchronization finished, %v tasks failed, cost %v.",
 		c.failedTaskList.Len(), time.Since(start).String())
-
 	c.logger.Infof(color.New(color.FgGreen).Sprintf(endMsg))
 
-	if c.successImagesFile != "" {
+	if len(c.successImagesFile) != 0 {
 		file, err := os.OpenFile(c.successImagesFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 		if err != nil {
 			return fmt.Errorf("open file %v error: %v", c.successImagesFile, err)
