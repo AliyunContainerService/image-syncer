@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -57,8 +57,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&outputImagesFormat, "output-images-format", "yaml", "success images output format, json or yaml")
 }
 
-// Execute executes the RootCmd
-func Execute() {
+func main() {
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)

@@ -6,3 +6,4 @@ records
 *.conf
 *.json
 *.yaml
+.DS_Store
