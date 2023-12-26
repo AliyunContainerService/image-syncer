@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/AliyunContainerService/image-syncer/pkg/server"
 	"os"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/client"
@@ -18,6 +19,9 @@ var (
 	osFilterList, archFilterList []string
 
 	forceUpdate bool
+
+	serverMode bool
+	port       int
 )
 
 // RootCmd describes "image-syncer" command
@@ -39,7 +43,16 @@ var RootCmd = &cobra.Command{
 		}
 
 		cmd.SilenceUsage = true
-		return client.Run()
+
+		if !serverMode {
+			return client.Run()
+		}
+
+		srv, err := server.NewHTTPServer()
+		if err != nil {
+			return fmt.Errorf("init server error: %v", err)
+		}
+		return srv.Run()
 	},
 }
 
@@ -55,6 +68,8 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&forceUpdate, "force", false, "force update manifest whether the destination manifest exists")
 	RootCmd.PersistentFlags().StringVar(&successImagesFile, "output-success-images", "", "output success images in a new file")
 	RootCmd.PersistentFlags().StringVar(&outputImagesFormat, "output-images-format", "yaml", "success images output format, json or yaml")
+	RootCmd.PersistentFlags().BoolVar(&serverMode, "server", false, "run in server mode")
+	RootCmd.PersistentFlags().IntVar(&port, "port", 9001, "server port to listen on/connect to")
 }
 
 func main() {
