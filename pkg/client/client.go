@@ -80,6 +80,7 @@ func (c *Client) Run() error {
 		for _, dest := range destList {
 			// TODO: support multiple destinations for one task
 			ruleTask, err := task.NewRuleTask(source, dest,
+				c.config.osFilterList, c.config.archFilterList,
 				func(repository string) types.Auth {
 					auth, exist := c.config.GetAuth(repository)
 					if !exist {

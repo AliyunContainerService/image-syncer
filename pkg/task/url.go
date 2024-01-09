@@ -27,12 +27,17 @@ type URLTask struct {
 	forceUpdate bool
 }
 
-func NewURLTask(source, destination *utils.RepoURL, sourceAuth, destinationAuth types.Auth, forceUpdate bool) Task {
+func NewURLTask(source, destination *utils.RepoURL,
+	sourceAuth, destinationAuth types.Auth,
+	osFilterList, archFilterList []string,
+	forceUpdate bool) Task {
 	return &URLTask{
 		source:          source,
 		destination:     destination,
 		sourceAuth:      sourceAuth,
 		destinationAuth: destinationAuth,
+		osFilterList:    osFilterList,
+		archFilterList:  archFilterList,
 		forceUpdate:     forceUpdate,
 	}
 }
