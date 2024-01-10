@@ -14,12 +14,15 @@ type RuleTask struct {
 	source      string
 	destination string
 
+	osFilterList, archFilterList []string
+
 	getAuthFunc func(repository string) types.Auth
 
 	forceUpdate bool
 }
 
 func NewRuleTask(source, destination string,
+	osFilterList, archFilterList []string,
 	getAuthFunc func(repository string) types.Auth, forceUpdate bool) (*RuleTask, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source url should not be empty")
@@ -30,10 +33,12 @@ func NewRuleTask(source, destination string,
 	}
 
 	return &RuleTask{
-		source:      source,
-		destination: destination,
-		getAuthFunc: getAuthFunc,
-		forceUpdate: forceUpdate,
+		source:         source,
+		destination:    destination,
+		getAuthFunc:    getAuthFunc,
+		osFilterList:   osFilterList,
+		archFilterList: archFilterList,
+		forceUpdate:    forceUpdate,
 	}, nil
 }
 
@@ -64,8 +69,13 @@ func (r *RuleTask) Run() ([]Task, string, error) {
 
 	var results []Task
 	for index, s := range sourceURLs {
-		results = append(results, NewURLTask(s, destinationURLs[index], r.getAuthFunc(s.GetURLWithoutTagOrDigest()),
-			r.getAuthFunc(destinationURLs[index].GetURLWithoutTagOrDigest()), r.forceUpdate))
+		results = append(results,
+			NewURLTask(s, destinationURLs[index],
+				r.getAuthFunc(s.GetURLWithoutTagOrDigest()),
+				r.getAuthFunc(destinationURLs[index].GetURLWithoutTagOrDigest()),
+				r.osFilterList, r.archFilterList, r.forceUpdate,
+			),
+		)
 	}
 
 	return results, "", nil
