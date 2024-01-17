@@ -1,24 +1,23 @@
 package concurrent
 
+import "sync"
+
 type Counter struct {
-	c     chan struct{}
+	sync.Mutex
 	count int
 	total int
 }
 
 func NewCounter(count, total int) *Counter {
 	return &Counter{
-		c:     make(chan struct{}, 1),
 		count: count,
 		total: total,
 	}
 }
 
 func (c *Counter) Decrease() (int, int) {
-	c.c <- struct{}{}
-	defer func() {
-		<-c.c
-	}()
+	c.Lock()
+	defer c.Unlock()
 
 	if c.count > 0 {
 		c.count--
@@ -27,10 +26,8 @@ func (c *Counter) Decrease() (int, int) {
 }
 
 func (c *Counter) Increase() (int, int) {
-	c.c <- struct{}{}
-	defer func() {
-		<-c.c
-	}()
+	c.Lock()
+	defer c.Unlock()
 
 	if c.count < c.total {
 		c.count++
@@ -39,10 +36,8 @@ func (c *Counter) Increase() (int, int) {
 }
 
 func (c *Counter) IncreaseTotal() (int, int) {
-	c.c <- struct{}{}
-	defer func() {
-		<-c.c
-	}()
+	c.Lock()
+	defer c.Unlock()
 
 	c.total++
 	return c.count, c.total
@@ -50,10 +45,8 @@ func (c *Counter) IncreaseTotal() (int, int) {
 
 // Value return count and total
 func (c *Counter) Value() (int, int) {
-	c.c <- struct{}{}
-	defer func() {
-		<-c.c
-	}()
+	c.Lock()
+	defer c.Unlock()
 
 	return c.count, c.total
 }

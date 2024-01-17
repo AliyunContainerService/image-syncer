@@ -2,25 +2,23 @@ package concurrent
 
 import (
 	"container/list"
+	"sync"
 )
 
 type List struct {
-	c     chan struct{}
+	sync.Mutex
 	items *list.List
 }
 
 func NewList() *List {
 	return &List{
-		c:     make(chan struct{}, 1),
 		items: list.New(),
 	}
 }
 
 func (l *List) PopFront() any {
-	l.c <- struct{}{}
-	defer func() {
-		<-l.c
-	}()
+	l.Lock()
+	defer l.Unlock()
 
 	item := l.items.Front()
 	if item != nil {
@@ -32,47 +30,43 @@ func (l *List) PopFront() any {
 }
 
 func (l *List) PushBack(value any) {
-	l.c <- struct{}{}
-	defer func() {
-		<-l.c
-	}()
+	l.Lock()
+	defer l.Unlock()
 
 	l.items.PushBack(value)
 }
 
 func (l *List) PushFront(value any) {
-	l.c <- struct{}{}
-	defer func() {
-		<-l.c
-	}()
+	l.Lock()
+	defer l.Unlock()
 
 	l.items.PushFront(value)
 }
 
 func (l *List) PushBackList(other *List) {
-	l.c <- struct{}{}
-	defer func() {
-		<-l.c
-	}()
+	l.Lock()
+	defer l.Unlock()
 
 	l.items.PushBackList(other.GetItems())
 }
 
 func (l *List) GetItems() *list.List {
-	l.c <- struct{}{}
-	defer func() {
-		<-l.c
-	}()
+	l.Lock()
+	defer l.Unlock()
 
 	return l.items
 }
 
 func (l *List) Reset() {
-	close(l.c)
-	l.c = make(chan struct{}, 1)
+	l.Lock()
+	defer l.Unlock()
+
 	l.items.Init()
 }
 
 func (l *List) Len() int {
+	l.Lock()
+	defer l.Unlock()
+
 	return l.items.Len()
 }

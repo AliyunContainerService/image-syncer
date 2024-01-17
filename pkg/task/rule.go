@@ -43,6 +43,12 @@ func NewRuleTask(source, destination string,
 }
 
 func (r *RuleTask) Run() ([]Task, string, error) {
+	//// random failure test
+	//rand.Seed(time.Now().UnixNano())
+	//if rand.Intn(100)%2 == 1 {
+	//	return nil, "", fmt.Errorf("random failure")
+	//}
+
 	// if source tag is not specific, get all tags of this source repo
 	sourceURLs, err := utils.GenerateRepoURLs(r.source, r.listAllTags)
 	if err != nil {

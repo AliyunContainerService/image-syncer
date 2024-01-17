@@ -6,13 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
+	"github.com/fatih/color"
+	"github.com/panjf2000/ants"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/concurrent"
 	"github.com/AliyunContainerService/image-syncer/pkg/task"
-	"github.com/fatih/color"
-	"github.com/sirupsen/logrus"
+	"github.com/AliyunContainerService/image-syncer/pkg/utils/types"
 )
 
 // Client describes a synchronization client
@@ -97,7 +98,48 @@ func (c *Client) Run() error {
 		}
 	}
 
-	c.openRoutinesHandleTaskAndWaitForFinish()
+	routinePool, _ := ants.NewPoolWithFunc(c.routineNum, func(i interface{}) {
+		tTask, ok := i.(task.Task)
+		if !ok {
+			c.logger.Errorf("invalid task %v", i)
+			return
+		}
+
+		nextTasks, message, err := tTask.Run()
+		count, total := c.taskCounter.Increase()
+		finishedNumString := color.New(color.FgGreen).Sprintf("%d", count)
+		totalNumString := color.New(color.FgGreen).Sprintf("%d", total)
+
+		if err != nil {
+			c.failedTaskList.PushBack(tTask)
+			c.failedTaskCounter.IncreaseTotal()
+			c.logger.Errorf("Failed to executed %v: %v. Now %v/%v tasks have been processed.", tTask.String(), err,
+				finishedNumString, totalNumString)
+		} else {
+			if tTask.Type() == task.ManifestType {
+				// TODO: the ignored images will not be recorded in success images list
+				c.successImagesList.Add(tTask.GetSource().String(), tTask.GetDestination().String())
+			}
+
+			if len(message) != 0 {
+				c.logger.Infof("Finish %v: %v. Now %v/%v tasks have been processed.", tTask.String(), message,
+					finishedNumString, totalNumString)
+			} else {
+				c.logger.Infof("Finish %v. Now %v/%v tasks have been processed.", tTask.String(),
+					finishedNumString, totalNumString)
+			}
+		}
+
+		for _, t := range nextTasks {
+			c.taskList.PushFront(t)
+			c.taskCounter.IncreaseTotal()
+		}
+	})
+	defer routinePool.Release()
+
+	if err = c.handleTasks(routinePool); err != nil {
+		return fmt.Errorf("failed to handle tasks: %v", err)
+	}
 
 	for times := 0; times < c.retries; times++ {
 		c.taskCounter, c.failedTaskCounter = c.failedTaskCounter, concurrent.NewCounter(0, 0)
@@ -110,7 +152,9 @@ func (c *Client) Run() error {
 		if c.taskList.Len() != 0 {
 			// retry to handle task
 			c.logger.Infof("Start to retry tasks, please wait ...")
-			c.openRoutinesHandleTaskAndWaitForFinish()
+			if err = c.handleTasks(routinePool); err != nil {
+				return fmt.Errorf("failed to handle tasks: %v", err)
+			}
 		}
 	}
 
@@ -144,73 +188,21 @@ func (c *Client) Run() error {
 	return nil
 }
 
-func (c *Client) openRoutinesHandleTaskAndWaitForFinish() {
-	broadcastChan := concurrent.NewBroadcastChan(c.routineNum)
-	broadcastChan.Broadcast()
-
-	go func() {
-		for {
-			// if all the worker routines is hung and taskList is empty, stop everything
-			<-broadcastChan.TotalHungChan()
-			if c.taskList.Len() == 0 {
-				broadcastChan.Close()
+func (c *Client) handleTasks(routinePool *ants.PoolWithFunc) error {
+	for {
+		item := c.taskList.PopFront()
+		// no more tasks need to handle
+		if item == nil {
+			if routinePool.Running() == 0 {
+				break
 			}
+			time.Sleep(1 * time.Second)
+			continue
 		}
-	}()
 
-	concurrent.CreateRoutinesAndWaitForFinish(c.routineNum, func() {
-		for {
-			closed := broadcastChan.Wait()
-
-			// run out of exist tasks
-			for {
-				item := c.taskList.PopFront()
-				// no more tasks need to handle
-				if item == nil {
-					break
-				}
-
-				tTask := item.(task.Task)
-
-				c.logger.Infof("Executing %v...", tTask.String())
-				nextTasks, message, err := tTask.Run()
-
-				count, total := c.taskCounter.Increase()
-				finishedNumString := color.New(color.FgGreen).Sprintf("%d", count)
-				totalNumString := color.New(color.FgGreen).Sprintf("%d", total)
-
-				if err != nil {
-					c.failedTaskList.PushBack(tTask)
-					c.failedTaskCounter.IncreaseTotal()
-					c.logger.Errorf("Failed to executed %v: %v. Now %v/%v tasks have been processed.", tTask.String(), err,
-						finishedNumString, totalNumString)
-				} else {
-					if tTask.Type() == task.ManifestType {
-						// TODO: the ignored images will not be recorded in success images list
-						c.successImagesList.Add(tTask.GetSource().String(), tTask.GetDestination().String())
-					}
-
-					if len(message) != 0 {
-						c.logger.Infof("Finish %v: %v. Now %v/%v tasks have been processed.", tTask.String(), message,
-							finishedNumString, totalNumString)
-					} else {
-						c.logger.Infof("Finish %v. Now %v/%v tasks have been processed.", tTask.String(),
-							finishedNumString, totalNumString)
-					}
-				}
-
-				if nextTasks != nil {
-					for _, t := range nextTasks {
-						c.taskList.PushFront(t)
-						c.taskCounter.IncreaseTotal()
-					}
-					broadcastChan.Broadcast()
-				}
-			}
-
-			if closed {
-				return
-			}
+		if err := routinePool.Invoke(item); err != nil {
+			return fmt.Errorf("failed to invoke routine: %v", err)
 		}
-	})
+	}
+	return nil
 }
