@@ -1,4 +1,4 @@
-FROM golang:1.12.7 as builder
+FROM golang:1.22.2 as builder
 WORKDIR /go/src/github.com/AliyunContainerService/image-syncer
 COPY ./ ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make
