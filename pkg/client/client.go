@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/panjf2000/ants"
+	"github.com/panjf2000/ants/v2"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -138,7 +138,7 @@ func (c *Client) Run() error {
 	defer routinePool.Release()
 
 	if err = c.handleTasks(routinePool); err != nil {
-		return fmt.Errorf("failed to handle tasks: %v", err)
+		c.logger.Errorf("Failed to handle tasks: %v", err)
 	}
 
 	for times := 0; times < c.retries; times++ {
@@ -153,7 +153,7 @@ func (c *Client) Run() error {
 			// retry to handle task
 			c.logger.Infof("Start to retry tasks, please wait ...")
 			if err = c.handleTasks(routinePool); err != nil {
-				return fmt.Errorf("failed to handle tasks: %v", err)
+				c.logger.Errorf("Failed to handle tasks: %v", err)
 			}
 		}
 	}

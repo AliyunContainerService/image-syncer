@@ -1,0 +1,6 @@
+*.md
+*.yaml
+*.json
+.git/
+.github/
+images-syncer
