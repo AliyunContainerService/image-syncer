@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils/auth"
@@ -216,69 +217,13 @@ func manifestEqual(m1, m2 []byte) bool {
 	var a map[string]interface{}
 	var b map[string]interface{}
 
-	json.Unmarshal(m1, &a)
-	json.Unmarshal(m2, &b)
-
-	return compareMap(a, b)
-}
-
-func compareMap(map1, map2 map[string]interface{}) bool {
-	if len(map1) != len(map2) {
+	if err := json.Unmarshal(m1, &a); err != nil {
+		//Received an unexpected manifest retrieval result, return false to trigger a fallback to the push task.
+		return false
+	}
+	if err := json.Unmarshal(m2, &b); err != nil {
 		return false
 	}
 
-	for key, value1 := range map1 {
-		value2, ok := map2[key]
-		if !ok {
-			return false
-		}
-
-		switch v1 := value1.(type) {
-		case map[string]interface{}:
-			v2, ok := value2.(map[string]interface{})
-			if !ok || !compareMap(v1, v2) {
-				return false
-			}
-		case []interface{}:
-			v2, ok := value2.([]interface{})
-			if !ok || !compareSlice(v1, v2) {
-				return false
-			}
-		default:
-			if value1 != value2 {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-func compareSlice(slice1, slice2 []interface{}) bool {
-	if len(slice1) != len(slice2) {
-		return false
-	}
-
-	for i, v1 := range slice1 {
-		v2 := slice2[i]
-
-		switch elem1 := v1.(type) {
-		case map[string]interface{}:
-			elem2, ok := v2.(map[string]interface{})
-			if !ok || !compareMap(elem1, elem2) {
-				return false
-			}
-		case []interface{}:
-			elem2, ok := v2.([]interface{})
-			if !ok || !compareSlice(elem1, elem2) {
-				return false
-			}
-		default:
-			if v1 != v2 {
-				return false
-			}
-		}
-	}
-
-	return true
+	return reflect.DeepEqual(a, b)
 }
