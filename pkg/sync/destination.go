@@ -1,11 +1,11 @@
 package sync
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/AliyunContainerService/image-syncer/pkg/utils/auth"
@@ -214,11 +214,16 @@ func (i *ImageDestination) String() string {
 }
 
 func manifestEqual(m1, m2 []byte) bool {
-	var a bytes.Buffer
-	_ = json.Compact(&a, m1)
+	var a map[string]interface{}
+	var b map[string]interface{}
 
-	var b bytes.Buffer
-	_ = json.Compact(&b, m2)
+	if err := json.Unmarshal(m1, &a); err != nil {
+		//Received an unexpected manifest retrieval result, return false to trigger a fallback to the push task.
+		return false
+	}
+	if err := json.Unmarshal(m2, &b); err != nil {
+		return false
+	}
 
-	return a.String() == b.String()
+	return reflect.DeepEqual(a, b)
 }
