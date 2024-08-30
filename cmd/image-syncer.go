@@ -17,7 +17,7 @@ var (
 
 	osFilterList, archFilterList []string
 
-	forceUpdate bool
+	forceUpdate, version bool
 )
 
 // RootCmd describes "image-syncer" command
@@ -30,6 +30,14 @@ var RootCmd = &cobra.Command{
 	Complete documentation is available at https://github.com/AliyunContainerService/image-syncer`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceErrors = true
+
+		if version {
+			fmt.Println("app-version: ", utils.Version)
+			fmt.Println("git-branch: ", utils.Branch)
+			fmt.Println("git-commit: ", utils.Commit)
+			fmt.Println("build-timestamp: ", utils.Timestamp)
+			return nil
+		}
 
 		// work starts here
 		client, err := client.NewSyncClient(configFile, authFile, imagesFile, logPath, successImagesFile, outputImagesFormat,
@@ -55,6 +63,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&forceUpdate, "force", false, "force update manifest whether the destination manifest exists")
 	RootCmd.PersistentFlags().StringVar(&successImagesFile, "output-success-images", "", "output success images in a new file")
 	RootCmd.PersistentFlags().StringVar(&outputImagesFormat, "output-images-format", "yaml", "success images output format, json or yaml")
+	RootCmd.PersistentFlags().BoolVar(&version, "version", false, "print app version")
 }
 
 // Execute executes the RootCmd
