@@ -53,13 +53,11 @@ func NewSyncConfig(configFile, authFilePath, imageFilePath string,
 				return nil, fmt.Errorf("decode auth file %v error: %v", authFilePath, err)
 			}
 		}
-		config.AuthList = expandEnv(config.AuthList)
-
 		if err := openAndDecode(imageFilePath, &config.ImageList); err != nil {
 			return nil, fmt.Errorf("decode image file %v error: %v", imageFilePath, err)
 		}
 	}
-
+	config.AuthList = expandEnv(config.AuthList)
 	config.osFilterList = osFilterList
 	config.archFilterList = archFilterList
 
@@ -120,12 +118,16 @@ func expandEnv(authMap map[string]types.Auth) map[string]types.Auth {
 	result := make(map[string]types.Auth)
 
 	for registry, auth := range authMap {
-		pwd := os.ExpandEnv(auth.Password)
-		name := os.ExpandEnv(auth.Username)
-		newAuth := types.Auth{
-			Username: name,
-			Password: pwd,
-			Insecure: auth.Insecure,
+		newAuth := auth
+		if !auth.DisableExpandEnv {
+			pwd := os.ExpandEnv(auth.Password)
+			name := os.ExpandEnv(auth.Username)
+			newAuth = types.Auth{
+				Username:         name,
+				Password:         pwd,
+				Insecure:         auth.Insecure,
+				DisableExpandEnv: auth.DisableExpandEnv,
+			}
 		}
 		result[registry] = newAuth
 	}
