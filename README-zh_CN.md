@@ -48,7 +48,7 @@ make
 # 获得帮助信息
 ./image-syncer -h
 
-./image-syncer --proc=6 --auth=./auth.json --images=./images.json --auth=./auth.json --retries=3
+./image-syncer --proc=6 --auth=./auth.json --images=./images.json  --retries=3
 ```
 
 ### 配置文件

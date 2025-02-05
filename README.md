@@ -48,7 +48,7 @@ make
 # Get usage information
 ./image-syncer -h
 
-./image-syncer --proc=6 --auth=./auth.json --images=./images.json --auth=./auth.json --retries=3
+./image-syncer --proc=6 --auth=./auth.json --images=./images.json --retries=3
 ```
 
 ### Configure Files
