@@ -53,7 +53,7 @@ make
 
 ### Configure Files
 
-Image-syncer supports `--auth` and `--images` flag for passing authentication file and image sync configuration file, both of which supports YAML and JSON format. Seperate authentication information is more flexible to reuse it in different sync missions.
+Image-syncer supports `--auth` and `--images` flag for passing authentication file and image sync configuration file, both of which supports YAML and JSON format. Separate authentication information is more flexible to reuse it in different sync missions.
 
 > The older version (< v1.2.0) of configuration file is still supported via `--config` flag, you can find the example in [config.yaml](examples/config.yaml) and [config.json](examples/config.json).
 
@@ -61,7 +61,7 @@ Image-syncer supports `--auth` and `--images` flag for passing authentication fi
 
 Authentication file holds all the authentication information for each registry. For each registry (or namespace), there is a object which contains username and password. For each images sync rule in image sync configuration file, image-syncer will try to find a match in all the authentication information and use the best(longest) fit one. Access will be anonymous if no authentication information is found.
 
-You can find the example in [auth.yaml](examples/auth.yaml) and [auth.json](examples/auth.json), here we use [auth.yaml](examples/auth.yaml) for explaination:
+You can find the example in [auth.yaml](examples/auth.yaml) and [auth.json](examples/auth.json), here we use [auth.yaml](examples/auth.yaml) for explanation:
 
 ```yaml
 quay.io: # This "registry" or "registry/namespace" string should be the same as registry or registry/namespace used below in image sync rules. And if an url match multiple objects, the "registry/namespace" string will actually be used.
@@ -87,14 +87,14 @@ in `docker pull/push` commands, but still something different in the "tags and d
 
 1. Neither of the source images url and the destination images url should be empty.
 2. If the source images url contains no tags or digest, all the tags of source repository will be synced.
-3. The source images url can have more than one tags, which should be seperated by comma, only the specified tags will be synced.
+3. The source images url can have more than one tags, which should be separated by comma, only the specified tags will be synced.
 4. The source images url can have at most one digest, and the destination images url should only have no digest or the same digest at the same time.
 5. The "tags" part of source images url can be a regular expression which needs to have an additional prefix and suffix string `/`. All the tags of source repository that matches the regular expression will be synced. Multiple regular expressions is not supported.
 6. If the destination images url has no digest or tags, it means the source images will keep the same tags or digest after being synced.
 7. The destination images url can have more than one tags, the number of which must be the same with the tags in the source images url, then all the source images' tags will be changed to a new one (correspond from left to right).
 8. The "destination images url" can also be an array, each of which follows the rules above.
 
-You can find the example in [images.yaml](examples/images.yaml) and [images.json](examples/images.json), here we use [images.yaml](examples/images.yaml) for explaination:
+You can find the example in [images.yaml](examples/images.yaml) and [images.json](examples/images.json), here we use [images.yaml](examples/images.yaml) for explanation:
 
 ```yaml
 quay.io/coreos/kube-rbac-proxy: quay.io/ruohe/kube-rbac-proxy
@@ -114,7 +114,7 @@ quay.io/coreos/kube-rbac-proxy:/a+/: quay.io/ruohe/kube-rbac-proxy
 
     --config     Set the path of config file, this file need to be created before starting synchronization, default
                  config file is at "current/working/directory/config.json". (This flag can be replaced with flag --auth
-                 and --images which for better orgnization.)
+                 and --images which for better organization.)
 
     --auth       Set the path of authentication file, this file need to be created before starting synchronization, default
                  config file is at "current/working/directory/auth.json". This flag need to be pair used with --images.
