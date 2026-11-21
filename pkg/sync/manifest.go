@@ -76,6 +76,11 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 		if err != nil {
 			return nil, nil, nil, err
 		}
+		// OCI artifacts such as attestations are not runnable images and are rejected by some registries.
+		if manifestObj.Subject != nil || manifestObj.ArtifactType != "" ||
+			manifestObj.Config.MediaType == specsv1.MediaTypeEmptyJSON {
+			return nil, nil, nil, nil
+		}
 		return manifestObj, manifestBytes, nil, nil
 	case manifest.DockerV2ListMediaType:
 		var subManifestInfoSlice []*ManifestInfo
@@ -93,7 +98,6 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 				continue
 			}
 
-			filteredDescriptors = append(filteredDescriptors, manifestDescriptorElem)
 			mfstBytes, mfstType, err := i.source.GetManifest(i.ctx, &manifestDescriptorElem.Digest)
 			if err != nil {
 				return nil, nil, nil, err
@@ -107,6 +111,7 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 			}
 
 			if subManifest != nil {
+				filteredDescriptors = append(filteredDescriptors, manifestDescriptorElem)
 				subManifestInfoSlice = append(subManifestInfoSlice, &ManifestInfo{
 					Obj: subManifest.(manifest.Manifest),
 
@@ -149,8 +154,6 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 				continue
 			}
 
-			filteredDescriptors = append(filteredDescriptors, descriptor)
-
 			mfstBytes, mfstType, innerErr := i.source.GetManifest(i.ctx, &descriptor.Digest)
 			if innerErr != nil {
 				return nil, nil, nil, innerErr
@@ -164,6 +167,7 @@ func GenerateManifestObj(manifestBytes []byte, manifestType string, osFilterList
 			}
 
 			if subManifest != nil {
+				filteredDescriptors = append(filteredDescriptors, descriptor)
 				subManifestInfoSlice = append(subManifestInfoSlice, &ManifestInfo{
 					Obj: subManifest.(manifest.Manifest),
 
