@@ -116,6 +116,11 @@ func (u *URLTask) generateSyncTasks(source *sync.ImageSource, destination *sync.
 		return nil, resultMsg, nil
 	}
 
+	destManifestBytes, err = manifestForDestination(destManifestObj, destManifestBytes, destination.GetRepository())
+	if err != nil {
+		return nil, resultMsg, fmt.Errorf("failed to prepare manifest for destination: %v", err)
+	}
+
 	if changed := destination.CheckManifestChanged(destManifestBytes, nil); !u.forceUpdate && !changed {
 		// do nothing if image is unchanged
 		resultMsg = "skip synchronization because destination image exists"
@@ -179,4 +184,14 @@ func (u *URLTask) generateSyncTasks(source *sync.ImageSource, destination *sync.
 	}
 
 	return results, resultMsg, nil
+}
+
+func manifestForDestination(manifestObj interface{}, manifestBytes []byte, destinationRepository string) ([]byte, error) {
+	schema1, ok := manifestObj.(*manifest.Schema1)
+	if !ok || schema1.Name == destinationRepository {
+		return manifestBytes, nil
+	}
+
+	schema1.Name = destinationRepository
+	return schema1.Serialize()
 }

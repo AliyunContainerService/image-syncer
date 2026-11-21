@@ -225,5 +225,10 @@ func manifestEqual(m1, m2 []byte) bool {
 		return false
 	}
 
+	if a["schemaVersion"] == float64(1) && b["schemaVersion"] == float64(1) {
+		delete(a, "signatures")
+		delete(b, "signatures")
+	}
+
 	return reflect.DeepEqual(a, b)
 }
